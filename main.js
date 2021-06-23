@@ -1,33 +1,18 @@
-const {app, BrowserWindow, Menu,Notification} = require('electron')
+const {
+  app,
+  BrowserWindow,
+  Menu,
+  Notification,
+  webContents,
+} = require('electron')
 const path = require('path')
 const url = require('url')
 
 // 保持一个对于 window 对象的全局引用，如果你不这样做，
 // 当 JavaScript 对象被垃圾回收， window 会被自动地关闭
-let win,win2
+let win, win2
 
-function createWindow () {
-  const template = [
-    {
-      role: 'window',
-      submenu: [
-        {role: 'minimize'},
-        {role: 'close'}
-      ]
-    },
-    {
-      role: 'help',
-      submenu: [
-        {
-          label: 'Learn More',
-          click () { require('electron').shell.openExternal('https://electron.atom.io') }
-        }
-      ]
-    }
-  ]
-  const menu = Menu.buildFromTemplate(template)
-  Menu.setApplicationMenu(menu)
-
+function createWindow() {
 
   // 创建浏览器窗口。
   win = new BrowserWindow({
@@ -37,6 +22,37 @@ function createWindow () {
       nodeIntegration: true
     }
   })
+
+  const template = [{
+      role: 'window',
+      submenu: [{
+          role: 'minimize'
+        },
+        {
+          role: 'close'
+        }
+      ]
+    },
+    {
+      role: 'help',
+      submenu: [{
+        label: 'Learn More',
+        click() {
+          require('electron').shell.openExternal('https://electron.atom.io')
+        }
+      }]
+    },
+    {
+      label: 'Reload',
+      accelerator: 'CmdOrCtrl+R',
+      click: () => {
+        win.webContents.reload();
+      },
+    },
+  ]
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
+
 
   // 然后加载应用的 index.html。
   win.loadURL(url.format({
@@ -67,7 +83,7 @@ app.on('window-all-closed', () => {
   // 在 macOS 上，除非用户用 Cmd + Q 确定地退出，
   // 否则绝大部分应用及其菜单栏会保持激活。
   if (process.platform !== 'darwin') {
-    app.quit()
+    app.quit();
   }
 })
 
@@ -78,3 +94,7 @@ app.on('activate', () => {
     createWindow()
   }
 })
+
+try {
+  require('electron-reloader')(module);
+} catch (_) {}

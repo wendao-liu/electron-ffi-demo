@@ -26,7 +26,7 @@
     <input type="text" value="1">+
     <input type="text" value="2">=
     <input type="text">
-    <button type="button" onclick="plus()">计算</button>
+    <button type="button" onclick="plus()">计算2</button>
   </div>
 
   <h3>C++ Function strlen() :
@@ -36,7 +36,7 @@
       placeholder="Input something"></textarea>
   </h3>
 
-  We are using node
+  We are using node1111
   <script>
     document.write(process.versions.node)
   </script>, Chrome
@@ -54,10 +54,15 @@
       let ffi = require('ffi-napi', window);
       const path = require('path');
       // Create funtions
-      console.log();
-      window.Dll = ffi.Library(path.join(__dirname, 'dll/lib/libhelloDll'), {
-        "hello": ['int', ['int']],
-        "add": ['int', ['int', 'int']]
+      let p = path.join('C:/winHaitun/Clion/untitled/cmake-build-debug/libuntitled');
+      // let p = path.join('C:/winHaitun/Clion/testC/cmake-build-debug/libtestC');
+
+      console.log(p,'p');
+      // window.Dll = ffi.Library(path.join(__dirname, 'dll/lib/libtestC.dll'), {
+      window.Dll = ffi.Library(p, {
+       "hello": ['int', ['int']],
+       "add": ['int', ['int', 'int']],
+       // "callBackFn": ["void", ["void *"]]
       })
       console.log(Dll, '---fii.Library result:');
       // Call C++ function Hello
@@ -67,14 +72,19 @@
       // }
     }
 
+    function CBFn(p1, p2) {
+      console.log(p1, p2);
+    }
+
     function plus() {
+      Dll.hello('10' + Math.random() + '');
+      //Dll.callBackFn(CBFn);
 
-      Dll.hello(10);
-      console.log(Dll.add(1, 2))
+      let inputs = document.getElementById('plus').getElementsByTagName('input');
+      let a = Number(inputs[1].value),
+        b = Number(inputs[0].value);
 
-      // let inputs = document.getElementById('plus').getElementsByTagName('input');
-      // let a = Number(inputs[1].value),
-      //   b = Number(inputs[0].value);
+      console.log(Dll.add(a, b))
       // // Call C++ function Add
       // let sum = Dll.Add(a, b);
       // console.log(`${a}+${b}=${sum}`);
