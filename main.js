@@ -19,7 +19,7 @@ let openExec;
 const exeName = path.basename(process.execPath);
 
 function createWindow() {
-  openExec = exec('node ./server.js', function (error, stdout, stderr) {
+  openExec = exec('node ./extraResources/server.js', function (error, stdout, stderr) {
     if (error) {
       console.log(error.stack);
       console.log('Error code: ' + error.code);
@@ -109,7 +109,8 @@ function createWindow() {
     iconPath = path.join(app.getAppPath(), './extraResources/icon.ico');
   } else {
     // 正式环境
-    iconPath = path.join(process.resourcesPath, './extraResources/icon.ico');
+    // iconPath = path.join(process.resourcesPath, './extraResources/icon.ico');
+    iconPath = path.join('./extraResources/icon.ico');
   }
 
   tray = new Tray(iconPath);
