@@ -17,7 +17,19 @@
     "extraResources": [
       "./extraResources/**"
     ],
+    "nsis": {
+      "oneClick": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "extraResources/icon.ico",
+      "uninstallerIcon": "extraResources/icon.ico",
+      "installerHeaderIcon": "extraResources/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "test"
+    },
     "win": {
+      "icon": "extraResources/icon.ico",
       "target": [
         "nsis",
         "zip"
