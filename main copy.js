@@ -13,7 +13,6 @@ const url = require('url')
 // 保持一个对于 window 对象的全局引用，如果你不这样做，
 // 当 JavaScript 对象被垃圾回收， window 会被自动地关闭
 let win, win2;
-let tray = null
 const exeName = path.basename(process.execPath);
 
 function createWindow() {
@@ -63,57 +62,12 @@ function createWindow() {
 
   if (process.argv.indexOf("--openAsHidden") < 0) {
     //然后加载应用的 index.html。
-    // win.loadURL(url.format({
-    //   pathname: path.join(__dirname, 'index.html'),
-    //   protocol: 'file:',
-    //   slashes: true
-    // }))
-    win.loadURL('http://localhost:8000')
-  } else {
-    win.hide();
-    win.setSkipTaskbar(true);
+    win.loadURL(url.format({
+      pathname: path.join(__dirname, 'index.html'),
+      protocol: 'file:',
+      slashes: true
+    }))
   }
-
-  // 当我们点击关闭时触发close事件，我们按照之前的思路在关闭时，隐藏窗口，隐藏任务栏窗口
-  // event.preventDefault(); 禁止关闭行为(非常必要，因为我们并不是想要关闭窗口，所以需要禁止默认行为)
-  win.on('close', (event) => {
-    win.hide();
-    win.setSkipTaskbar(true);
-    event.preventDefault();
-  });
-  win.on('show', () => {
-    tray.setHighlightMode('always')
-  })
-  win.on('hide', () => {
-    tray.setHighlightMode('never')
-  })
-
-
-  //创建系统通知区菜单
-  let iconPath = ''
-  if (process.env.WEBPACK_DEV_SERVER_URL) {
-    // 测试环境
-    iconPath = path.join(app.getAppPath(), './extraResources/icon.ico');
-  } else {
-    // 正式环境
-    iconPath = path.join(process.resourcesPath, './extraResources/icon.ico');
-  }
-
-  tray = new Tray(iconPath);
-  const contextMenu = Menu.buildFromTemplate([{
-      label: '退出',
-      click: () => {
-        win.destroy()
-      }
-    }, //我们需要在这里有一个真正的退出（这里直接强制退出）
-  ])
-  tray.setToolTip('My托盘测试')
-  tray.setContextMenu(contextMenu)
-  tray.on('click', () => { //我们这里模拟桌面程序点击通知区图标实现打开关闭应用的功能
-    win.isVisible() ? win.hide() : win.show()
-    win.isVisible() ? win.setSkipTaskbar(false) : win.setSkipTaskbar(true);
-  })
-
 
   // 当 window 被关闭，这个事件会被触发。
   win.on('closed', () => {
@@ -124,6 +78,18 @@ function createWindow() {
   })
 }
 
+let tray = null
+app.whenReady().then(() => {
+  tray = new Tray('./ico.ico')
+  const contextMenu = Menu.buildFromTemplate([
+    { label: 'Item1', type: 'radio' },
+    { label: 'Item2', type: 'radio' },
+    { label: 'Item3', type: 'radio', checked: true },
+    { label: 'Item4', type: 'radio' }
+  ])
+  tray.setToolTip('This is my application.')
+  tray.setContextMenu(contextMenu)
+})
 
 // Electron 会在初始化后并准备
 // 创建浏览器窗口时，调用这个函数。
