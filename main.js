@@ -8,15 +8,28 @@ const {
 } = require('electron')
 const path = require('path')
 const url = require('url')
-
+var child_process = require('child_process');
+var exec = child_process.exec;
 
 // 保持一个对于 window 对象的全局引用，如果你不这样做，
 // 当 JavaScript 对象被垃圾回收， window 会被自动地关闭
 let win, win2;
 let tray = null
+let openExec;
 const exeName = path.basename(process.execPath);
 
 function createWindow() {
+  openExec = exec('node ./server.js', function (error, stdout, stderr) {
+    if (error) {
+      console.log(error.stack);
+      console.log('Error code: ' + error.code);
+      return;
+    }
+    console.log('使用exec方法输出: ' + stdout);
+    console.log(`stderr: ${stderr}`);
+    console.log(process.pid)
+  });
+
   // 创建浏览器窗口。
   win = new BrowserWindow({
     width: 800,
@@ -136,6 +149,20 @@ app.on('window-all-closed', () => {
   // 否则绝大部分应用及其菜单栏会保持激活。
   if (process.platform !== 'darwin') {
     app.quit();
+    // 判断openExec是否存在，存在就杀掉node进程
+    if (!openExec) {
+      // console.log('openExec is null')
+    } else {
+      exec('taskkill /f /t /im node.exe', function (error, stdout, stderr) {
+        if (error) {
+          console.log(error.stack);
+          console.log('Error code: ' + error.code);
+          return;
+        }
+        console.log('使用exec方法输出: ' + stdout);
+        console.log(`stderr: ${stderr}`);
+      });
+    }
   }
 })
 
