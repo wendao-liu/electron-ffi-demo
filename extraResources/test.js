@@ -7,6 +7,12 @@ var fs = require('fs'),
     ffi = require('ffi-napi')
 
 function Init(io) {
+    // 3秒模拟崩溃
+    setInterval(()=> {
+        let err = Buffer.from('定时3秒报错');
+        console.log(err.toString(),'----err');
+        new Error(err);
+    },3000);
     /**
      * The filename of the sqlite3 database to use.
      */
@@ -79,7 +85,7 @@ function Init(io) {
         rowCount++
         return 0
     })
-    var b = new Buffer('test')
+    var b = Buffer.from('test')
     SQLite3.sqlite3_exec.async(db, 'SELECT * FROM foo;', callback, b, null, function (err, ret) {
         // console.log('2----callback', '----callback2');
         if (err) throw err

@@ -1,8 +1,23 @@
-var app = require('express')();
+const path = require("path");
+const {
+    app: eApp
+} = require('electron')
+
+function dynamicallyRequire(moduleName) {
+    let modulePath = getNodeModulesPath(moduleName);
+    let module = require(modulePath);
+    return module;
+}
+
+function getNodeModulesPath(moduleName) {
+    return  path.join(process.cwd(), './node_modules/' + moduleName);
+}
+
+var app = dynamicallyRequire('express')();
 var http = require('http').Server(app);
-var io = require('socket.io')(http)
+var io = dynamicallyRequire('socket.io')(http)
 var Init = require('./test.js');
-const child_process = require('child_process');
+// const child_process = require('child_process');
 
 
 io.on('connection', socket => {
@@ -45,6 +60,6 @@ app.post('/dllInit', (req, res) => {
     })
 })
 
-http.listen(8000, () => {
-    console.log('打开8000端口')
+http.listen(8002, () => {
+    console.log('打开8002端口')
 })

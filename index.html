@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+
+<body>
+  <div>
+    <button onclick="init()">DllInit</button>
+  </div>
+</body>
+
+<script>
+  const {
+    ipcRenderer
+  } = require('electron')
+
+  function postData(url, data) {
+    // Default options are marked with *
+    return fetch(url, {
+        body: JSON.stringify(data), // must match 'Content-Type' header
+        cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+        credentials: 'same-origin', // include, same-origin, *omit
+        headers: {
+          'user-agent': 'Mozilla/4.0 MDN Example',
+          'content-type': 'application/json'
+        },
+        method: 'POST', // *GET, POST, PUT, DELETE, etc.
+        mode: 'cors', // no-cors, cors, *same-origin
+        redirect: 'follow', // manual, *follow, error
+        referrer: 'no-referrer', // *client, no-referrer
+      })
+      .then(response => response.json()) // parses response to JSON
+  }
+
+  const socket = io('ws://localhost:8002');
+  socket.on('chat message', function (msg) {
+    // console.log(msg, 'server-msg');
+    console.log(msg);
+  })
+
+  function init() {
+    ipcRenderer.send('asynchronous-message', 'ping')
+    socket.emit('chat message', {
+      MAC: Math.random() * 1000
+    });
+    // postData('/dllInit', {
+    //         answer: 42
+    //     })
+    //     .then(data => console.log(data)) // JSON from `response.json()` call
+    //     .catch(error => console.error(error))
+  }
+  window.onload = function () {
+    console.log(ipcRenderer.sendSync('synchronous-message', 'ping')); // prints "pong"
+
+    ipcRenderer.on('asynchronous-reply', function (event, arg) {
+      console.log(arg); // prints "pong"
+    });
+    ipcRenderer.send('asynchronous-message', 'ping');
+  }
+</script>
+
+</html>

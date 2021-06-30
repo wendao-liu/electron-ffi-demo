@@ -5,11 +5,12 @@ const {
   Notification,
   webContents,
   Tray,
+  ipcMain
 } = require('electron')
 const path = require('path')
 const url = require('url')
 var child_process = require('child_process');
-var exec = child_process.exec;
+var spawn = child_process.spawn;
 
 // 保持一个对于 window 对象的全局引用，如果你不这样做，
 // 当 JavaScript 对象被垃圾回收， window 会被自动地关闭
@@ -17,19 +18,39 @@ let win, win2;
 let tray = null
 let openExec;
 const exeName = path.basename(process.execPath);
+const pluginMessage = {
+  'test': null,
+}
+// 在主进程中.
+ipcMain.on('asynchronous-message', function (event, arg) {
+  pluginMessage.test = event;
+  console.log(arg); // prints "ping"
+  event.sender.send('asynchronous-reply', 'pong');
+});
 
-function createWindow() {
-  openExec = exec('node ./extraResources/server.js', function (error, stdout, stderr) {
-    if (error) {
-      console.log(error.stack);
-      console.log('Error code: ' + error.code);
-      return;
-    }
-    console.log('使用exec方法输出: ' + stdout);
-    console.log(`stderr: ${stderr}`);
-    console.log(process.pid)
+ipcMain.on('synchronous-message', function (event, arg) {
+  console.log(arg); // prints "ping"
+  event.returnValue = 'pong';
+});
+
+function processChildFn() {
+  openExec = spawn('node', ['./extraResources/server.js']);
+  openExec.stdout.on('data', (data) => {
+    console.log(`stdout: ${data}`);
   });
 
+  openExec.stderr.on('data', (data) => {
+    pluginMessage.test.sender.send('asynchronous-reply', data.toString());
+    console.error(`stderr---: ${data}`);
+  });
+
+  openExec.on('close', (code) => {
+    console.log(`child process exited with code ${code}`);
+  });
+}
+
+
+function createWindow() {
   // 创建浏览器窗口。
   win = new BrowserWindow({
     width: 800,
@@ -76,12 +97,12 @@ function createWindow() {
 
   if (process.argv.indexOf("--openAsHidden") < 0) {
     //然后加载应用的 index.html。
-    // win.loadURL(url.format({
-    //   pathname: path.join(__dirname, 'index.html'),
-    //   protocol: 'file:',
-    //   slashes: true
-    // }))
-    win.loadURL('http://localhost:8000')
+    win.loadURL(url.format({
+      pathname: path.join(__dirname, 'index.html'),
+      protocol: 'file:',
+      slashes: true
+    }))
+    // win.loadURL('http://localhost:8002')
   } else {
     win.hide();
     win.setSkipTaskbar(true);
@@ -128,6 +149,7 @@ function createWindow() {
     win.isVisible() ? win.setSkipTaskbar(false) : win.setSkipTaskbar(true);
   })
 
+  processChildFn()
 
   // 当 window 被关闭，这个事件会被触发。
   win.on('closed', () => {

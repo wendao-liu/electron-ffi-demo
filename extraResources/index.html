@@ -34,7 +34,7 @@
             .then(response => response.json()) // parses response to JSON
     }
 
-    const socket = io('ws://localhost:8000');
+    const socket = io('ws://localhost:8002');
     socket.on('chat message', function (msg) {
         // console.log(msg, 'server-msg');
         console.log(msg);
@@ -51,7 +51,15 @@
         //     .catch(error => console.error(error))
     }
     window.onload = function () {
+        const {
+            ipcRenderer
+        } = require('electron')
+        console.log(ipcRenderer.sendSync('synchronous-message', 'ping')) // prints "pong"
 
+        ipcRenderer.on('asynchronous-reply', (event, arg) => {
+            console.log(arg) // prints "pong"
+        })
+        ipcRenderer.send('asynchronous-message', 'ping')
     }
 </script>
 
