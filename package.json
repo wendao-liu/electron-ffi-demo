@@ -1,11 +1,11 @@
 {
   "name": "electron-ffi-demo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "call a dll with ffi",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "cross-env WEBPACK_DEV_SERVER_URL=true  electron .",
+    "start": "electron .",
     "dist": "electron-builder",
     "start:node": "nodemon index.js",
     "dist1": "electron-builder 22.2.0"
@@ -14,6 +14,9 @@
   "author": "wzdxy",
   "license": "ISC",
   "build": {
+    "asarUnpack": [
+      "**/node_modules/**/*"
+    ],
     "nsis": {
       "oneClick": false,
       "allowElevation": true,
@@ -41,7 +44,6 @@
     "electron": "^6.1.12",
     "electron-builder": "^21.2.0",
     "electron-reloader": "^1.2.1",
-    "ffi-napi": "^2.5.0",
     "fs": "0.0.1-security",
     "iconv-lite": "^0.6.3",
     "node-gyp": "^8.1.0",
@@ -49,7 +51,6 @@
     "path": "^0.12.7",
     "ref-napi": "^3.0.3"
   },
-  "dependencies": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wendao-liu/electron-ffi-demo.git"

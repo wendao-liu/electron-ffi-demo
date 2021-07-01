@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+
+<body>
+  <div>
+    <button onclick="getVersion()">getVersion</button>
+  </div>
+</body>
+
+<script>
+  //在渲染器进程 (网页) 中。
+  const {
+    ipcRenderer
+  } = require('electron');
+  ipcRenderer.send('SQLite3.sqlite3_exec.async');
+
+  let SQLite3 = {
+    sqlite3_libversion: () => {
+      return ipcRenderer.sendSync('SQLite3.sqlite3_libversion')
+    },
+    'sqlite3_exec.async': (cb) => {
+      ipcRenderer.on('SQLite3.sqlite3_exec.async', (event, data) => {
+        cb(data)
+      })
+    }
+  }
+
+  function callback(data) {
+    console.log(data);
+  }
+
+  SQLite3['sqlite3_exec.async'](callback)
+
+  function getVersion() {
+    console.log(SQLite3.sqlite3_libversion());
+  }
+
+  window.onload = () => {
+
+  }
+</script>
+
+</html>

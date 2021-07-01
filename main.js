@@ -5,9 +5,12 @@ const {
   Notification,
   webContents,
   Tray,
-} = require('electron')
-const path = require('path')
-const url = require('url')
+  ipcMain,
+} = require('electron');
+const path = require('path');
+const url = require('url');
+const ref = require('ref-napi');
+const ffi = require('ffi-napi');
 var child_process = require('child_process');
 var exec = child_process.exec;
 
@@ -15,21 +18,71 @@ var exec = child_process.exec;
 // 当 JavaScript 对象被垃圾回收， window 会被自动地关闭
 let win, win2;
 let tray = null
-let openExec;
 const exeName = path.basename(process.execPath);
+var SQLite3 = {};
+// 注册推送事件表
+var SQLite3Event = {
+  'SQLite3.sqlite3_libversion.event': null,
+  'SQLite3.sqlite3_exec.async.event': null,
+}
+
+function Init() {
+  var dbName = process.argv[2] || 'test.sqlite3'
+  var sqlite3 = 'void' // `sqlite3` is an "opaque" type, so we don't know its layout
+    ,
+    sqlite3Ptr = ref.refType(sqlite3),
+    sqlite3PtrPtr = ref.refType(sqlite3Ptr),
+    sqlite3_exec_callback = 'pointer' // TODO: use ffi.Callback when #76 is implemented
+    ,
+    stringPtr = ref.refType('string')
+
+  // create FFI'd versions of the libsqlite3 function we're interested in
+  SQLite3 = ffi.Library('dll/sqlite3', {
+    'sqlite3_libversion': ['string', []],
+    'sqlite3_open': ['int', ['string', sqlite3PtrPtr]],
+    'sqlite3_close': ['int', [sqlite3Ptr]],
+    'sqlite3_changes': ['int', [sqlite3Ptr]],
+    'sqlite3_exec': ['int', [sqlite3Ptr, 'string', sqlite3_exec_callback, 'void *', stringPtr]],
+  })
+
+
+  var db = ref.alloc(sqlite3PtrPtr)
+  SQLite3.sqlite3_open(dbName, db)
+  db = db.deref()
+
+  var callback = ffi.Callback('int', ['void *', 'int', stringPtr, stringPtr], function (tmp, cols, argv, colv) {
+    var obj = {}
+    for (var i = 0; i < cols; i++) {
+      var colName = colv.deref()
+      var colData = argv.deref()
+      obj[colName] = colData
+    }
+    console.log(obj);
+    let c = 'SQLite3.sqlite3_exec.async.event';
+
+    // 注册异步IPC通信
+    ipcMain.on('SQLite3.sqlite3_exec.async', (event, arg) => {
+      event.sender.send('SQLite3.sqlite3_exec.async', JSON.stringify(obj))
+    })
+    return 0
+  })
+
+  var b = new Buffer('test')
+  SQLite3.sqlite3_exec.async(db, 'SELECT * FROM foo;', callback, b, null, function (err, ret) {
+    // console.log('2----callback', '----callback2');
+    if (err) throw err
+  })
+}
+
+// 获取版本
+ipcMain.on('SQLite3.sqlite3_libversion', (event, arg) => {
+  SQLite3Event['SQLite3.sqlite3_libversion.even'] = event;
+  event.returnValue = SQLite3.sqlite3_libversion ? SQLite3.sqlite3_libversion() : '0.0.0.';
+})
+
 
 function createWindow() {
-  openExec = exec('node ./extraResources/server.js', function (error, stdout, stderr) {
-    if (error) {
-      console.log(error.stack);
-      console.log('Error code: ' + error.code);
-      return;
-    }
-    console.log('使用exec方法输出: ' + stdout);
-    console.log(`stderr: ${stderr}`);
-    console.log(process.pid)
-  });
-
+  Init();
   // 创建浏览器窗口。
   win = new BrowserWindow({
     width: 800,
@@ -76,12 +129,12 @@ function createWindow() {
 
   if (process.argv.indexOf("--openAsHidden") < 0) {
     //然后加载应用的 index.html。
-    // win.loadURL(url.format({
-    //   pathname: path.join(__dirname, 'index.html'),
-    //   protocol: 'file:',
-    //   slashes: true
-    // }))
-    win.loadURL('http://localhost:8000')
+    win.loadURL(url.format({
+      pathname: path.join(__dirname, 'index.html'),
+      protocol: 'file:',
+      slashes: true
+    }))
+    // win.loadURL('http://localhost:8000')
   } else {
     win.hide();
     win.setSkipTaskbar(true);
@@ -150,20 +203,6 @@ app.on('window-all-closed', () => {
   // 否则绝大部分应用及其菜单栏会保持激活。
   if (process.platform !== 'darwin') {
     app.quit();
-    // 判断openExec是否存在，存在就杀掉node进程
-    if (!openExec) {
-      // console.log('openExec is null')
-    } else {
-      exec('taskkill /f /t /im node.exe', function (error, stdout, stderr) {
-        if (error) {
-          console.log(error.stack);
-          console.log('Error code: ' + error.code);
-          return;
-        }
-        console.log('使用exec方法输出: ' + stdout);
-        console.log(`stderr: ${stderr}`);
-      });
-    }
   }
 })
 
