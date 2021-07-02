@@ -12,6 +12,12 @@ const url = require('url');
 const ref = require('ref-napi');
 const ffi = require('ffi-napi');
 var child_process = require('child_process');
+const http = require('http');
+let util = require('util');
+let fs = require('fs');
+const {
+  promises
+} = require('stream');
 var exec = child_process.exec;
 
 // 保持一个对于 window 对象的全局引用，如果你不这样做，
@@ -20,11 +26,6 @@ let win, win2;
 let tray = null
 const exeName = path.basename(process.execPath);
 var SQLite3 = {};
-// 注册推送事件表
-var SQLite3Event = {
-  'SQLite3.sqlite3_libversion.event': null,
-  'SQLite3.sqlite3_exec.async.event': null,
-}
 
 function Init() {
   var dbName = process.argv[2] || 'test.sqlite3'
@@ -57,13 +58,12 @@ function Init() {
       var colData = argv.deref()
       obj[colName] = colData
     }
-    console.log(obj);
-    let c = 'SQLite3.sqlite3_exec.async.event';
 
     // 注册异步IPC通信
     ipcMain.on('SQLite3.sqlite3_exec.async', (event, arg) => {
       event.sender.send('SQLite3.sqlite3_exec.async', JSON.stringify(obj))
-    })
+    });
+
     return 0
   })
 
@@ -76,13 +76,56 @@ function Init() {
 
 // 获取版本
 ipcMain.on('SQLite3.sqlite3_libversion', (event, arg) => {
-  SQLite3Event['SQLite3.sqlite3_libversion.even'] = event;
   event.returnValue = SQLite3.sqlite3_libversion ? SQLite3.sqlite3_libversion() : '0.0.0.';
 })
 
 
+ipcMain.on('asynchronous-message', (event, arg) => {
+  console.log(arg) // prints "ping"
+  event.reply('asynchronous-reply', 'pong')
+})
+
+
+function startServer() {
+  // http库是node提供的api，可以直接上node的中文网，直接看到各种api
+  let server = http.createServer((req, res) => {
+
+    // 通过你在浏览器输入的网站，利用url.parse进行解析成一个对象，再读取其中pathname的属性
+    // 例如你输入http://localhost:8080/index.html，然后url.parse(req.url).pathname返回的值为 "/index.html"
+    var pathname = url.parse(req.url).pathname
+    console.log('file:' + pathname.substring(1))
+    // fs，文件系统，读取文件
+    fs.readFile('index.html', (err, data) => {
+      if (err) {
+        // 错误就返回404状态码
+        res.writeHead(404, {
+          'Content-Type': 'text/html'
+        })
+      } else {
+        // 成功读取文件
+        res.writeHead(200, {
+          'Content-Type': 'text/html'
+        })
+        // 展示文件数据
+        res.write(data.toString())
+      }
+      // 注意，这个end 一定要放在读取文件的内部使用
+      console.log(util.inspect(url.parse(req.url)));
+      // res.end(util.inspect(url.parse(req.url)))
+      res.end()
+    })
+  })
+
+  server.listen(3000, 'localhost', () => {
+    console.log('服务器已经运行，请打开浏览器，输入：http：//127.0.0.1：3000/来访问')
+  })
+}
+
+
 function createWindow() {
   Init();
+  // startServer();
+
   // 创建浏览器窗口。
   win = new BrowserWindow({
     width: 800,

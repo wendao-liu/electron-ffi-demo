@@ -20,7 +20,15 @@
   const {
     ipcRenderer
   } = require('electron');
+
+  // 要建立一次ping pong通信才可以进行后续操作
   ipcRenderer.send('SQLite3.sqlite3_exec.async');
+  ipcRenderer.send('asynchronous-message', 'ping');
+
+
+  ipcRenderer.on('asynchronous-reply', (event, arg) => {
+    console.log(arg) // prints "pong"
+  })
 
   let SQLite3 = {
     sqlite3_libversion: () => {
