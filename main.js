@@ -13,12 +13,13 @@ const ref = require('ref-napi');
 const ffi = require('ffi-napi');
 var child_process = require('child_process');
 const http = require('http');
-let util = require('util');
 let fs = require('fs');
 const {
   promises
 } = require('stream');
+const util = require('util');
 var exec = child_process.exec;
+var spawn = child_process.spawn;
 
 // 保持一个对于 window 对象的全局引用，如果你不这样做，
 // 当 JavaScript 对象被垃圾回收， window 会被自动地关闭
@@ -26,7 +27,9 @@ let win, win2;
 let tray = null
 const exeName = path.basename(process.execPath);
 var SQLite3 = {};
+let openExec;
 
+// SQLite3 init
 function Init() {
   var dbName = process.argv[2] || 'test.sqlite3'
   var sqlite3 = 'void' // `sqlite3` is an "opaque" type, so we don't know its layout
@@ -86,6 +89,7 @@ ipcMain.on('asynchronous-message', (event, arg) => {
 })
 
 
+// 直接走http服务，这样找不到模块
 function startServer() {
   // http库是node提供的api，可以直接上node的中文网，直接看到各种api
   let server = http.createServer((req, res) => {
@@ -125,7 +129,7 @@ function startServer() {
 function createWindow() {
   Init();
   // startServer();
-
+  nodeStartServer();
   // 创建浏览器窗口。
   win = new BrowserWindow({
     width: 800,
@@ -167,8 +171,6 @@ function createWindow() {
 
   // 打开开发者工具。
   win.webContents.openDevTools();
-
-  console.log(1);
 
   if (process.argv.indexOf("--openAsHidden") < 0) {
     //然后加载应用的 index.html。
@@ -234,6 +236,21 @@ function createWindow() {
   })
 }
 
+// node 启动服务
+function nodeStartServer() {
+  openExec = spawn('node', ['./extraResources/server.js']);
+  openExec.stdout.on('data', (data) => {
+    console.log(`stdout: ${data}`);
+  });
+
+  openExec.stderr.on('data', (data) => {
+    console.error(`stderr---: ${data}`);
+  });
+
+  openExec.on('close', (code) => {
+    console.log(`child process exited with code ${code}`);
+  });
+}
 
 // Electron 会在初始化后并准备
 // 创建浏览器窗口时，调用这个函数。
@@ -257,10 +274,6 @@ app.on('activate', () => {
   }
 })
 
-// try {
-//   require('electron-reloader')(module);
-// } catch (_) {}
-
 // 注册自定义协议
 app.setAsDefaultProtocolClient('myApp')
 // 监听
@@ -269,21 +282,18 @@ app.on('open-url', function (event, url) {
   console.log(url)
 })
 
-
-
-// app.setLoginItemSettings({
-//   openAtLogin: true, // Boolean 在登录时启动应用
-//   openAsHidden: false, // Boolean (可选) mac 表示以隐藏的方式启动应用。~~~~
-//   // path: updateExe,
-//   // path: '', String (可选) Windows - 在登录时启动的可执行文件。默认为 process.execPath.
-//   // args: [] String Windows - 要传递给可执行文件的命令行参数。默认为空数组。注意用引号将路径换行。
-//   // path: process.execPath,
-//   path: 'C:\winHaitun\electron-ffi-demo\dist\win-ia32-unpacked\electron-ffi-demo.exe',
-//   args: [
-//     '--processStart', `"${'electron-ffi-demo'}"`,
-//   ]
-// })
-
+app.setLoginItemSettings({
+  openAtLogin: true, // Boolean 在登录时启动应用
+  openAsHidden: false, // Boolean (可选) mac 表示以隐藏的方式启动应用。~~~~
+  // path: updateExe,
+  // path: '', String (可选) Windows - 在登录时启动的可执行文件。默认为 process.execPath.
+  // args: [] String Windows - 要传递给可执行文件的命令行参数。默认为空数组。注意用引号将路径换行。
+  // path: process.execPath,
+  path: 'C:\winHaitun\electron-ffi-demo\dist\win-ia32-unpacked\electron-ffi-demo.exe',
+  args: [
+    '--processStart', `"${'electron-ffi-demo'}"`,
+  ]
+})
 
 //应用是否打包
 if (app.isPackaged) {

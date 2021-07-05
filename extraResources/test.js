@@ -2,9 +2,9 @@
  * Module dependencies.
  */
 
-var fs = require('fs'),
-    ref = require('ref-napi'),
-    ffi = require('ffi-napi')
+const fs = require('fs');
+const ref = require('ref-napi');
+const ffi = require('ffi-napi');
 
 function Init(io) {
     /**
@@ -86,4 +86,4 @@ function Init(io) {
     })
 }
 
-module.exports = Init;  
+module.exports = Init;
