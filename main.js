@@ -28,11 +28,74 @@ let tray = null
 const exeName = path.basename(process.execPath);
 var SQLite3 = {};
 let openExec;
+let IPCEvent = null;
+let SOCKETEvent = null;
+
+
+
+
+// 直接走http服务，这样找不到模块
+function startServer() {
+  // http库是node提供的api，可以直接上node的中文网，直接看到各种api
+  let server = http.createServer((req, res) => {
+
+    // 通过你在浏览器输入的网站，利用url.parse进行解析成一个对象，再读取其中pathname的属性
+    // 例如你输入http://localhost:8080/index.html，然后url.parse(req.url).pathname返回的值为 "/index.html"
+    var pathname = url.parse(req.url).pathname
+    // console.log('file:' + pathname.substring(1))
+    // fs，文件系统，读取文件
+    fs.readFile('index.html', (err, data) => {
+      if (err) {
+        // 错误就返回404状态码
+        res.writeHead(404, {
+          'Content-Type': 'text/html'
+        })
+      } else {
+        // 成功读取文件
+        res.writeHead(200, {
+          'Content-Type': 'text/html'
+        })
+        // 展示文件数据
+        res.write(data.toString())
+      }
+      // 注意，这个end 一定要放在读取文件的内部使用
+      // console.log(util.inspect(url.parse(req.url)));
+      // res.end(util.inspect(url.parse(req.url)))
+      res.end()
+    })
+  })
+  var io = require('socket.io')(server)
+  io.on('connection', socket => {
+    console.log('链接成功');
+    // 响应用户发送的信息
+    SOCKETEvent = socket;
+    socket.on('CSMessage', function (arg) {
+      const {
+        pluginName,
+        fn
+      } = arg || {};
+      console.log(44444);
+      if (fn) {
+        console.log(33333);
+        eval(`${fn}(${JSON.stringify(arg)})`);
+      }
+      io.emit('CSMessage', {
+        pluginName: null,
+        data: 'pong'
+      })
+    })
+  });
+
+  server.listen(8080, 'localhost', () => {
+    console.log('服务器已经运行，请打开浏览器，输入：http：//127.0.0.1：8080/来访问')
+  })
+}
+
 
 // SQLite3 init
 function Init() {
   var dbName = process.argv[2] || 'test.sqlite3'
-  var sqlite3 = 'void' // `sqlite3` is an "opaque" type, so we don't know its layout
+  var sqlite3 = 'void' // `sqlite3` is an "opaque" pluginName, so we don't know its layout
     ,
     sqlite3Ptr = ref.refType(sqlite3),
     sqlite3PtrPtr = ref.refType(sqlite3Ptr),
@@ -86,72 +149,50 @@ function Init() {
     return 0
   }
 
-
-  // promisify(SQLite3.sqlite3_exec.async)(db, 'SELECT * FROM foo;', callback, b, null).then((ret) => {
-  //   console.log(ret, '-----ret', callback.deref());
-  // }).catch((err) => {
-  //   if (err) throw err
-  // })
-
   SQLite3.sqlite3_exec.async(db, 'SELECT * FROM foo;', callback, b, null, function (err, ret) {
     console.log(err, ret, 'err, ret');
     if (err) throw err
   })
 }
 
-// 获取版本
-ipcMain.on('SQLite3.sqlite3_libversion', (event, arg) => {
-  event.returnValue = SQLite3.sqlite3_libversion ? SQLite3.sqlite3_libversion() : '0.0.0.';
+// 建立通信
+ipcMain.on('CSMessage', (event, arg) => {
+  IPCEvent = event;
+  const {
+    pluginName,
+    fn
+  } = arg || {};
+  console.log(arg, 'arg');
+  if (fn) {
+    eval(`${fn}(${JSON.stringify(arg)})`);
+  }
+  event.sender.send('CSMessage', {
+    pluginName: null,
+    data: 'pong'
+  })
 })
 
 
-ipcMain.on('asynchronous-message', (event, arg) => {
-  console.log(arg) // prints "ping"
-  event.reply('asynchronous-reply', 'pong')
-})
-
-
-// 直接走http服务，这样找不到模块
-function startServer() {
-  // http库是node提供的api，可以直接上node的中文网，直接看到各种api
-  let server = http.createServer((req, res) => {
-
-    // 通过你在浏览器输入的网站，利用url.parse进行解析成一个对象，再读取其中pathname的属性
-    // 例如你输入http://localhost:8080/index.html，然后url.parse(req.url).pathname返回的值为 "/index.html"
-    var pathname = url.parse(req.url).pathname
-    console.log('file:' + pathname.substring(1))
-    // fs，文件系统，读取文件
-    fs.readFile('index.html', (err, data) => {
-      if (err) {
-        // 错误就返回404状态码
-        res.writeHead(404, {
-          'Content-Type': 'text/html'
-        })
-      } else {
-        // 成功读取文件
-        res.writeHead(200, {
-          'Content-Type': 'text/html'
-        })
-        // 展示文件数据
-        res.write(data.toString())
-      }
-      // 注意，这个end 一定要放在读取文件的内部使用
-      console.log(util.inspect(url.parse(req.url)));
-      // res.end(util.inspect(url.parse(req.url)))
-      res.end()
-    })
-  })
-
-  server.listen(3000, 'localhost', () => {
-    console.log('服务器已经运行，请打开浏览器，输入：http：//127.0.0.1：3000/来访问')
-  })
+function getVersion(arg) {
+  const {
+    pluginName,
+    fn
+  } = arg || {};
+  let param = {
+    pluginName,
+    fn,
+    data: SQLite3.sqlite3_libversion ? SQLite3.sqlite3_libversion() : '0.0.0.'
+  }
+  IPCEvent.sender.send('CSMessage', param)
+  SOCKETEvent.emit('CSMessage', param)
 }
+
 
 
 function createWindow() {
   Init();
-  // startServer();
-  nodeStartServer();
+  // nodeStartServer();
+  startServer();
   // 创建浏览器窗口。
   win = new BrowserWindow({
     width: 800,

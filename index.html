@@ -16,40 +16,46 @@
 </body>
 
 <script>
-  //在渲染器进程 (网页) 中。
-  const {
-    ipcRenderer
-  } = require('electron');
+  let ipcRendererT = null;
+  let socket = null;
+  try {
+    const {
+      ipcRenderer
+    } = require('electron');
+    ipcRendererT = ipcRenderer;
+    ipcRendererT.send('CSMessage', {
+      pluginName: null,
+      data: 'ping'
+    })
+    ipcRendererT.on('CSMessage', (event, data) => {
+      console.log(data);
+    });
+  } catch (error) {
+    // SOCKET 
+    socket = io('ws://localhost:8080');
+    socket.on('CSMessage', function (data) {
+      console.log(data);
+    });
+  }
 
-  // 要建立一次ping pong通信才可以进行后续操作
-  ipcRenderer.send('SQLite3.sqlite3_exec.async');
-  ipcRenderer.send('asynchronous-message', 'ping');
-
-
-  ipcRenderer.on('asynchronous-reply', (event, arg) => {
-    console.log(arg) // prints "pong"
-  })
-
-  let SQLite3 = {
-    sqlite3_libversion: () => {
-      return ipcRenderer.sendSync('SQLite3.sqlite3_libversion')
-    },
-    'sqlite3_exec.async': (cb) => {
-      ipcRenderer.on('SQLite3.sqlite3_exec.async', (event, data) => {
-        cb(data)
-      })
+  function messageFn(fnName) {
+    let param = {
+      pluginName: 'idCard',
+      fn: fnName
+    }
+    if (ipcRendererT) {
+      ipcRendererT.send('CSMessage', param)
+    } else {
+      socket.emit('CSMessage', param);
     }
   }
 
-  function callback(data) {
-    console.log(data);
-  }
 
-  SQLite3['sqlite3_exec.async'](callback)
 
   function getVersion() {
-    console.log(SQLite3.sqlite3_libversion());
+    messageFn('getVersion');
   }
+
 
   window.onload = () => {
 
