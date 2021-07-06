@@ -52,27 +52,49 @@ function Init() {
 
   var db = ref.alloc(sqlite3PtrPtr)
   SQLite3.sqlite3_open(dbName, db)
-  db = db.deref()
+  db = db.deref();
 
-  var callback = ffi.Callback('int', ['void *', 'int', stringPtr, stringPtr], function (tmp, cols, argv, colv) {
+
+  var b = Buffer.from('test');
+
+  const promisify = (fn, index) => (...args) => new Promise((resolve, reject) => {
+    // args.splice(index, 0, (err, ...result) => {
+    //   if (err) reject(err)
+    //   else resolve.apply(this, result)
+    // });
+    args.push((err, ...result) => {
+      if (err) reject(err)
+      else resolve.apply(this, result)
+    })
+    fn.apply(this, args)
+  })
+
+  var callback = ffi.Callback('int', ['void *', 'int', stringPtr, stringPtr], cb)
+
+  function cb(tmp, cols, argv, colv) {
     var obj = {}
     for (var i = 0; i < cols; i++) {
-      var colName = colv.deref()
-      var colData = argv.deref()
-      obj[colName] = colData
+      var colName = colv.deref();
+      var colData = argv.deref();
+      obj[colName] = colData;
     }
 
     // 注册异步IPC通信
     ipcMain.on('SQLite3.sqlite3_exec.async', (event, arg) => {
       event.sender.send('SQLite3.sqlite3_exec.async', JSON.stringify(obj))
     });
-
     return 0
-  })
+  }
 
-  var b = new Buffer('test')
+
+  // promisify(SQLite3.sqlite3_exec.async)(db, 'SELECT * FROM foo;', callback, b, null).then((ret) => {
+  //   console.log(ret, '-----ret', callback.deref());
+  // }).catch((err) => {
+  //   if (err) throw err
+  // })
+
   SQLite3.sqlite3_exec.async(db, 'SELECT * FROM foo;', callback, b, null, function (err, ret) {
-    // console.log('2----callback', '----callback2');
+    console.log(err, ret, 'err, ret');
     if (err) throw err
   })
 }
