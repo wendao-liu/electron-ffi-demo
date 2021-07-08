@@ -12,7 +12,7 @@ const url = require('url');
 const ref = require('ref-napi');
 const ffi = require('ffi-napi');
 var child_process = require('child_process');
-const http = require('http');
+// const http = require('http');
 let fs = require('fs');
 const {
   promises
@@ -26,68 +26,185 @@ var spawn = child_process.spawn;
 let win, win2;
 let tray = null
 const exeName = path.basename(process.execPath);
-var SQLite3 = {};
+var SQLite3 = null;
 let openExec;
-let IPCEvent = null;
-let SOCKETEvent = null;
+let IPCEvent = [];
+let SOCKETEvent = [];
 
-
-
-
-// 直接走http服务，这样找不到模块
-function startServer() {
-  // http库是node提供的api，可以直接上node的中文网，直接看到各种api
-  let server = http.createServer((req, res) => {
-
-    // 通过你在浏览器输入的网站，利用url.parse进行解析成一个对象，再读取其中pathname的属性
-    // 例如你输入http://localhost:8080/index.html，然后url.parse(req.url).pathname返回的值为 "/index.html"
-    var pathname = url.parse(req.url).pathname
-    // console.log('file:' + pathname.substring(1))
-    // fs，文件系统，读取文件
-    fs.readFile('index.html', (err, data) => {
-      if (err) {
-        // 错误就返回404状态码
-        res.writeHead(404, {
-          'Content-Type': 'text/html'
-        })
-      } else {
-        // 成功读取文件
-        res.writeHead(200, {
-          'Content-Type': 'text/html'
-        })
-        // 展示文件数据
-        res.write(data.toString())
+function errTip(plugin, param) {
+  if (!plugin) {
+    return false;
+  }
+  return true;
+}
+const PluginFn = {
+  idCard: {
+    status: false,
+    getVersion: (arg) => {
+      let param = {
+        ...arg,
       }
-      // 注意，这个end 一定要放在读取文件的内部使用
-      // console.log(util.inspect(url.parse(req.url)));
-      // res.end(util.inspect(url.parse(req.url)))
-      res.end()
-    })
-  })
-  var io = require('socket.io')(server)
-  io.on('connection', socket => {
-    console.log('链接成功');
-    // 响应用户发送的信息
-    SOCKETEvent = socket;
-    socket.on('CSMessage', function (arg) {
-      const {
+      if (!errTip(SQLite3, param)) {
+        param.data = {
+          err: '请先初始化'
+        }
+        return param;
+      }
+      param.data = SQLite3.sqlite3_libversion ? SQLite3.sqlite3_libversion() : '0.0.0';
+      // sendMessage(param);
+      return param;
+    },
+    init: ({
+      pluginName,
+      fn
+    }) => {
+      let param = {
         pluginName,
         fn
-      } = arg || {};
-      console.log(44444);
-      if (fn) {
-        console.log(33333);
-        eval(`${fn}(${JSON.stringify(arg)})`);
       }
-      io.emit('CSMessage', {
-        pluginName: null,
-        data: 'pong'
-      })
-    })
-  });
+      if (!PluginFn[pluginName][fn].status) {
+        PluginFn[pluginName][fn].status = true
+      } else {
+        param.data = {
+          err: '请不要重复初始化'
+        }
+        // sendMessage({
+        //   ...param,
+        //   data: {
+        //     err: '请不要重复初始化'
+        //   }
+        // });
+        return param;
+      }
+      var sqlite3 = 'void' // `sqlite3` is an "opaque" pluginName, so we don't know its layout
+        ,
+        sqlite3Ptr = ref.refType(sqlite3),
+        sqlite3PtrPtr = ref.refType(sqlite3Ptr),
+        sqlite3_exec_callback = 'pointer' // TODO: use ffi.Callback when #76 is implemented
+        ,
+        stringPtr = ref.refType('string')
 
-  server.listen(8080, 'localhost', () => {
-    console.log('服务器已经运行，请打开浏览器，输入：http：//127.0.0.1：8080/来访问')
+      // create FFI'd versions of the libsqlite3 function we're interested in
+      SQLite3 = ffi.Library('dll/sqlite3', {
+        'sqlite3_libversion': ['string', []],
+        'sqlite3_open': ['int', ['string', sqlite3PtrPtr]],
+        'sqlite3_close': ['int', [sqlite3Ptr]],
+        'sqlite3_changes': ['int', [sqlite3Ptr]],
+        'sqlite3_exec': ['int', [sqlite3Ptr, 'string', sqlite3_exec_callback, 'void *', stringPtr]],
+      })
+
+      param.data = '初始化成功！'
+
+      // sendMessage(param);
+      return param;
+    },
+    execAsync: (arg) => {
+      let param = {
+        ...arg,
+      }
+      if (!errTip(SQLite3, param)) {
+        param.data = {
+          err: '请先初始化'
+        }
+        return param;
+      }
+      var dbName = process.argv[2] || 'test.sqlite3'
+      var sqlite3 = 'void' // `sqlite3` is an "opaque" pluginName, so we don't know its layout
+        ,
+        sqlite3Ptr = ref.refType(sqlite3),
+        sqlite3PtrPtr = ref.refType(sqlite3Ptr),
+        stringPtr = ref.refType('string')
+      var db = ref.alloc(sqlite3PtrPtr)
+      SQLite3.sqlite3_open(dbName, db)
+      db = db.deref();
+      var b = Buffer.from('test');
+
+      return new Promise((reslove, reject) => {
+        var callback = ffi.Callback('int', ['void *', 'int', stringPtr, stringPtr], cb)
+        let args = [];
+
+        function cb(tmp, cols, argv, colv) {
+          var obj = {}
+          for (var i = 0; i < cols; i++) {
+            var colName = colv.deref();
+            var colData = argv.deref();
+            obj[colName] = colData;
+          }
+          // sendMessage(param);
+          args.push(obj)
+          return 0
+        }
+        SQLite3.sqlite3_exec.async(db, 'SELECT * FROM foo;', callback, b, null, function (err, ret) {
+          console.log(err, ret, 'err, ret');
+          let param = {
+            ...arg,
+            data: args
+          }
+          reslove(param)
+          if (err) throw err
+        })
+      })
+    }
+  }
+}
+
+
+// 直接走http服务
+function startServer() {
+  let app = require('express')();
+  var http = require('http').Server(app);
+  var io = require('socket.io')(http)
+  var bodyParser = require('body-parser');
+  // var io = require('socket.io')(server)
+  // io.on('connection', socket => {
+  //   console.log('链接成功');
+  //   // 响应用户发送的信息
+  //   SOCKETEvent.push(socket)
+  //   socket.on('CSMessage', function (arg) {
+  //     const {
+  //       pluginName,
+  //       fn
+  //     } = arg || {};
+  //     if (fn) {
+  //       PluginFn[pluginName][fn](arg);
+  //       // eval(`${fn}(${JSON.stringify(arg)})`);
+  //     } else {
+  //       io.emit('CSMessage', {
+  //         pluginName: null,
+  //         data: 'pong'
+  //       })
+  //     }
+  //   })
+  // });
+
+  app.use(bodyParser.json())
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, './index.html'))
+  })
+
+
+  function fnhandle(arg) {
+    const {
+      pluginName,
+      fn
+    } = arg || {};
+    if (fn) {
+      return PluginFn[pluginName][fn](arg);
+    }
+  }
+
+  app.post('/CSMessage', async (req, res) => {
+    const params = req.body;
+    console.log(params, '----', req.params);
+    const result = await fnhandle(params);
+    console.log(result, 'result');
+    res.send({
+      ...result
+    })
+  })
+
+  http.listen(8080, 'localhost', () => {
+    console.log('服务器已经运行，请打开浏览器，输入：http://127.0.0.1:8080/来访问')
   })
 }
 
@@ -120,17 +237,17 @@ function Init() {
 
   var b = Buffer.from('test');
 
-  const promisify = (fn, index) => (...args) => new Promise((resolve, reject) => {
-    // args.splice(index, 0, (err, ...result) => {
-    //   if (err) reject(err)
-    //   else resolve.apply(this, result)
-    // });
-    args.push((err, ...result) => {
-      if (err) reject(err)
-      else resolve.apply(this, result)
-    })
-    fn.apply(this, args)
-  })
+  // const promisify = (fn, index) => (...args) => new Promise((resolve, reject) => {
+  //   // args.splice(index, 0, (err, ...result) => {
+  //   //   if (err) reject(err)
+  //   //   else resolve.apply(this, result)
+  //   // });
+  //   args.push((err, ...result) => {
+  //     if (err) reject(err)
+  //     else resolve.apply(this, result)
+  //   })
+  //   fn.apply(this, args)
+  // })
 
   var callback = ffi.Callback('int', ['void *', 'int', stringPtr, stringPtr], cb)
 
@@ -156,41 +273,38 @@ function Init() {
 }
 
 // 建立通信
-ipcMain.on('CSMessage', (event, arg) => {
+ipcMain.on('CSMessage', async (event, arg) => {
+  // IPCEvent.push(event);
   IPCEvent = event;
   const {
     pluginName,
     fn
   } = arg || {};
-  console.log(arg, 'arg');
   if (fn) {
-    eval(`${fn}(${JSON.stringify(arg)})`);
+    let res = await PluginFn[pluginName][fn](arg);
+    event.returnValue = res;
+    // eval(`${fn}(${JSON.stringify(arg)})`);
+  } else {
+    // event.sender.send('CSMessage', {
+    //   pluginName: null,
+    //   data: 'pong'
+    // })
   }
-  event.sender.send('CSMessage', {
-    pluginName: null,
-    data: 'pong'
-  })
 })
 
 
-function getVersion(arg) {
-  const {
-    pluginName,
-    fn
-  } = arg || {};
-  let param = {
-    pluginName,
-    fn,
-    data: SQLite3.sqlite3_libversion ? SQLite3.sqlite3_libversion() : '0.0.0.'
-  }
+function sendMessage(param) {
+  // IPCEvent.forEach((ipc) => {
+  //   ipc.sender.send('CSMessage', param)
+  // })
   IPCEvent.sender.send('CSMessage', param)
-  SOCKETEvent.emit('CSMessage', param)
+  SOCKETEvent.forEach((s) => {
+    s.emit('CSMessage', param)
+  })
 }
 
 
-
 function createWindow() {
-  Init();
   // nodeStartServer();
   startServer();
   // 创建浏览器窗口。
@@ -337,8 +451,30 @@ app.on('activate', () => {
   }
 })
 
+// // 注册自定义协议
+// app.setAsDefaultProtocolClient('myApp')
+
+
 // 注册自定义协议
-app.setAsDefaultProtocolClient('myApp')
+function setDefaultProtocol(agreement) {
+  // const agreement = 'electron-playground-code' // 自定义协议名
+  let isSet = false // 是否注册成功
+
+  app.removeAsDefaultProtocolClient(agreement) // 每次运行都删除自定义协议 然后再重新注册
+  // 开发模式下在window运行需要做兼容
+  if (process.env.NODE_ENV === 'development' && process.platform === 'win32') {
+    // 设置electron.exe 和 app的路径
+    isSet = app.setAsDefaultProtocolClient(agreement, process.execPath, [
+      path.resolve(process.argv[1]),
+    ])
+  } else {
+    isSet = app.setAsDefaultProtocolClient(agreement)
+  }
+  console.log('是否注册成功', isSet)
+}
+setDefaultProtocol('electron');
+
+
 // 监听
 app.on('open-url', function (event, url) {
   event.preventDefault()

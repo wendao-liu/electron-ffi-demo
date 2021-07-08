@@ -11,7 +11,9 @@
 
 <body>
   <div>
+    <button onclick="init()">init</button>
     <button onclick="getVersion()">getVersion</button>
+    <button onclick="execAsync()">execAsync</button>
   </div>
 </body>
 
@@ -27,39 +29,74 @@
       pluginName: null,
       data: 'ping'
     })
-    ipcRendererT.on('CSMessage', (event, data) => {
-      console.log(data);
+    ipcRendererT.on('CSMessage', (event, res) => {
+      const {
+        data,
+        fn,
+        pluginName
+      } = res || {}
+      console.log(res);
     });
   } catch (error) {
     // SOCKET 
     socket = io('ws://localhost:8080');
-    socket.on('CSMessage', function (data) {
-      console.log(data);
+    socket.on('CSMessage', function (res) {
+      console.log(res);
     });
+    socket.emit('CSMessage', {
+      pluginName: null,
+      data: 'ping'
+    })
   }
 
-  function messageFn(fnName) {
+  function messageFn({
+    pluginName,
+    fn
+  }) {
     let param = {
-      pluginName: 'idCard',
-      fn: fnName
+      pluginName,
+      fn,
     }
     if (ipcRendererT) {
-      ipcRendererT.send('CSMessage', param)
+      return Promise.resolve(ipcRendererT.sendSync('CSMessage', param))
     } else {
-      socket.emit('CSMessage', param);
+      // socket.emit('CSMessage', param);
+      return fetch('/CSMessage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(param)
+      }).then(response => response.json())
     }
   }
 
+  async function getVersion() {
+    const res = await messageFn({
+      pluginName: 'idCard',
+      fn: 'getVersion'
+    })
 
-
-  function getVersion() {
-    messageFn('getVersion');
+    console.log(res);
   }
 
-
-  window.onload = () => {
-
+  async function execAsync() {
+    const res = await messageFn({
+      pluginName: 'idCard',
+      fn: 'execAsync'
+    });
+    console.log(res);
   }
+
+  async function init() {
+    const res = await messageFn({
+      pluginName: 'idCard',
+      fn: 'init'
+    });
+    console.log(res);
+  }
+
+  window.onload = () => {}
 </script>
 
 </html>
