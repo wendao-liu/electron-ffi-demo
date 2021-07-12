@@ -61,6 +61,7 @@
       return Promise.resolve(ipcRendererT.sendSync('CSMessage', param))
     } else {
       // socket.emit('CSMessage', param);
+      // 报错处理
       return fetch('/CSMessage', {
         method: 'POST',
         headers: {

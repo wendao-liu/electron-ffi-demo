@@ -6,9 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "cross-env NODE_ENV=development chcp 65001 &&  electron .",
-    "dist": "electron-builder",
-    "start:node": "nodemon index.js",
-    "dist1": "electron-builder 22.2.0"
+    "build": "electron-builder 22.2.0",
+    "start:node": "nodemon index.js"
   },
   "keywords": [],
   "author": "wzdxy",
@@ -37,7 +36,8 @@
     },
     "extraFiles": [
       "dll",
-      "extraResources"
+      "extraResources",
+      "node_modules"
     ]
   },
   "devDependencies": {
