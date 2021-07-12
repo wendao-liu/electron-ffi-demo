@@ -13,9 +13,19 @@
   <div>
     <div id="status">嘿嘿</div>
     <div>
-      <button onclick="init()">init</button>
-      <button onclick="getVersion()">getVersion</button>
-      <button onclick="execAsync()">execAsync</button>
+      idCard
+      <button onclick="handlePlugin('idCard','init')">init</button>
+      <button onclick="handlePlugin('idCard','getVersion')">getVersion</button>
+      <button onclick="handlePlugin('idCard','execSync')">execSync</button>
+      <button onclick="eventFn()">event</button>
+    </div>
+    <br />
+    <div>
+      idCard2
+      <button onclick="handlePlugin('idCard2','init')">init</button>
+      <button onclick="handlePlugin('idCard2','getVersion')">getVersion</button>
+      <button onclick="handlePlugin('idCard2','execSync')">execSync</button>
+      <button onclick="eventFn()">event</button>
     </div>
   </div>
 </body>
@@ -28,28 +38,20 @@
       ipcRenderer
     } = require('electron');
     ipcRendererT = ipcRenderer;
-    ipcRendererT.send('CSMessage', {
-      pluginName: null,
-      data: 'ping'
-    })
     ipcRendererT.on('CSMessage', (event, res) => {
       const {
         data,
         fn,
         pluginName
       } = res || {}
-      console.log(res);
+      console.log(res, 'from-ipc');
     });
   } catch (error) {
     // SOCKET 
     socket = io('ws://localhost:8080');
     socket.on('CSMessage', function (res) {
-      console.log(res);
+      console.log(res, 'from-websocket');
     });
-    socket.emit('CSMessage', {
-      pluginName: null,
-      data: 'ping'
-    })
   }
 
   function messageFn({
@@ -75,21 +77,45 @@
     }
   }
 
+
+  async function handlePlugin(pluginName, fn) {
+    const res = await messageFn({
+      pluginName,
+      fn
+    })
+    console.log(res);
+  }
+
   async function getVersion() {
     const res = await messageFn({
-      pluginName: 'idCard',
+      pluginName: 'idCard2',
       fn: 'getVersion'
     })
 
     console.log(res);
   }
 
-  async function execAsync() {
+
+  async function execSync() {
     const res = await messageFn({
       pluginName: 'idCard',
-      fn: 'execAsync'
+      fn: 'execSync'
     });
     console.log(res);
+  }
+
+  async function eventFn() {
+    if (ipcRendererT) {
+      await messageFn({
+        pluginName: 'idCard',
+        fn: 'eventIpc'
+      });
+    } else {
+      await messageFn({
+        pluginName: 'idCard',
+        fn: 'eventSocket'
+      });
+    }
   }
 
   async function init() {
