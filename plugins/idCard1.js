@@ -3,6 +3,7 @@ const ref = require('ref-napi');
 let SQLite3 = null;
 let IPCEvent = [];
 
+
 function errTip(plugin, param) {
     if (!plugin) {
         return false;
@@ -116,19 +117,23 @@ const PluginFn = {
             })
         })
     },
-    eventIpc: (type) => {
+    eventIpc: (arg) => {
         const param = {
             type: 'ipc'
         }
-        IPCEvent.sender.send('CSMessage', param)
+        process.send({
+            type: 'async',
+            data: param,
+        });
     },
     eventSocket: (type) => {
         const param = {
             type: 'socket'
         }
-        SOCKETEvent.forEach((s) => {
-            s.emit('CSMessage', param)
-        })
+        process.send({
+            type: 'async',
+            data: param,
+        });
     }
 }
 

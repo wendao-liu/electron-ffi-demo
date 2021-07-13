@@ -1,4 +1,8 @@
-const PluginFn = require(`./plugin/${process.env.name}`);
+const {
+    join
+} = require('path')
+const PluginFn = require(join(__dirname, 'plugins', process.env.name));
+
 
 function fnhandle(arg) {
     const {
@@ -12,10 +16,10 @@ function fnhandle(arg) {
 process.on('message', async (qeury) => {
     const {
         id,
-        fn,
     } = qeury || {};
     const result = await fnhandle(qeury);
     process.send({
+        type: 'sync',
         id,
         data: result,
     });

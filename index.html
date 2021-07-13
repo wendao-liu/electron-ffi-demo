@@ -11,22 +11,8 @@
 
 <body>
   <div>
-    <div id="status">嘿嘿</div>
-    <div>
-      idCard
-      <button onclick="handlePlugin('idCard','init')">init</button>
-      <button onclick="handlePlugin('idCard','getVersion')">getVersion</button>
-      <button onclick="handlePlugin('idCard','execSync')">execSync</button>
-      <button onclick="eventFn()">event</button>
-    </div>
-    <br />
-    <div>
-      idCard2
-      <button onclick="handlePlugin('idCard2','init')">init</button>
-      <button onclick="handlePlugin('idCard2','getVersion')">getVersion</button>
-      <button onclick="handlePlugin('idCard2','execSync')">execSync</button>
-      <button onclick="eventFn()">event</button>
-    </div>
+    <div id="status">测试</div>
+    <div id="events"></div>
   </div>
 </body>
 
@@ -56,24 +42,32 @@
 
   function messageFn({
     pluginName,
-    fn
+    fn,
+    param
   }) {
-    let param = {
+    let params = {
       pluginName,
       fn,
+      param
     }
+    const {
+      type
+    } = param || {};
     if (ipcRendererT) {
-      return Promise.resolve(ipcRendererT.sendSync('CSMessage', param))
+      return Promise.resolve(ipcRendererT.sendSync('CSMessage', params))
     } else {
-      // socket.emit('CSMessage', param);
-      // 报错处理
-      return fetch('/CSMessage', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(param)
-      }).then(response => response.json())
+      // if (type) {
+      //   socket.emit('CSMessage', params);
+      //   // 报错处理
+      // } else {
+        return fetch('/CSMessage', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(params)
+        }).then(response => response.json())
+      // }
     }
   }
 
@@ -85,77 +79,42 @@
     console.log(res);
   }
 
-  async function getVersion() {
-    const res = await messageFn({
-      pluginName: 'idCard2',
-      fn: 'getVersion'
-    })
-
-    console.log(res);
-  }
-
-
-  async function execSync() {
-    const res = await messageFn({
-      pluginName: 'idCard',
-      fn: 'execSync'
-    });
-    console.log(res);
-  }
-
-  async function eventFn() {
+  function asyncFn(pluginName) {
     if (ipcRendererT) {
-      await messageFn({
-        pluginName: 'idCard',
-        fn: 'eventIpc'
+      messageFn({
+        pluginName,
+        fn: 'eventIpc',
+        param: {
+          type: 'ipc'
+        }
       });
     } else {
-      await messageFn({
-        pluginName: 'idCard',
-        fn: 'eventSocket'
+      messageFn({
+        pluginName,
+        fn: 'eventSocket',
+        param: {
+          type: 'socket'
+        }
       });
     }
   }
 
-  async function init() {
-    const res = await messageFn({
-      pluginName: 'idCard',
-      fn: 'init'
-    });
-    console.log(res);
+  window.onload = () => {
+    const eventDom = document.getElementById('events');
+    let html = ''
+    for (let i = 0; i < 5; i++) {
+      html += `<div>
+      idCard${i}
+      <button onclick="handlePlugin('idCard${i}','init')">init</button>
+      <button onclick="handlePlugin('idCard${i}','getVersion')">getVersion</button>
+      <button onclick="handlePlugin('idCard${i}','execSync')">execSync</button>
+      <button onclick="asyncFn('idCard${i}')">asyncFn</button>
+    </div>
+    <br/>
+    `
+    }
+    eventDom.innerHTML = html;
   }
-
-
-
-  function sqlInit() {
-    var db = openDatabase('mydb', '1.0', 'Test DB', 2 * 1024 * 1024);
-    var msg;
-
-    db.transaction(function (tx) {
-      tx.executeSql('CREATE TABLE IF NOT EXISTS LOGS (id unique, log)');
-      tx.executeSql('INSERT INTO LOGS (id, log) VALUES (1, "菜鸟教程")');
-      tx.executeSql('INSERT INTO LOGS (id, log) VALUES (2, "www.runoob.com")');
-      msg = '<p>数据表已创建，且插入了两条数据。</p>';
-      document.querySelector('#status').innerHTML = msg;
-    });
-
-    db.transaction(function (tx) {
-      tx.executeSql('SELECT * FROM LOGS', [], function (tx, results) {
-        var len = results.rows.length,
-          i;
-        msg = "<p>查询记录条数: " + len + "</p>";
-        document.querySelector('#status').innerHTML += msg;
-
-        for (i = 0; i < len; i++) {
-          msg = "<p><b>" + results.rows.item(i).log + "</b></p>";
-          document.querySelector('#status').innerHTML += msg;
-        }
-      }, null);
-    });
-  }
-
-  sqlInit();
-  window.onload = () => {}
 </script>
 
 </html>
