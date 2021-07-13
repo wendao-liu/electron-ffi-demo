@@ -1,19 +1,68 @@
 const cluster = require('cluster');
 const http = require('http');
 const fs = require('fs');
+const {
+  app,
+  BrowserWindow,
+  Menu,
+  Tray,
+  ipcMain,
+} = require('electron');
+const path = require('path');
+const url = require('url');
+const ref = require('ref-napi');
+const ffi = require('ffi-napi');
 const numCPUs = require('os').cpus().length;
 
-console.log(cluster.isMaster, '---cluster.isPrimary');
+
 if (cluster.isMaster) {
   var pluginDir = fs.readdirSync("./plugin").map(p => (p.split('.')[0]));
   console.log(pluginDir);
   let keyPid = {}
+  let globalid = 0
+  let globalData = {}
+
+  function pluginCall(pluginName, fn, param) {
+    return new Promise((reslove, reject) => {
+      let worker = keyPid[pluginName];
+      if (worker) {
+        let count = 0;
+
+        let id = globalid++;
+        globalData[id] = null;
+        worker.send({
+          id,
+          fn,
+          param
+        })
+        let timer = setInterval(() => {
+          count++;
+          let d = globalData[id];
+          if (d) {
+            delete globalData[id];
+            clearInterval(timer);
+            reslove(d)
+          }
+          if (count >= 20) {
+            clearInterval(timer);
+            delete globalData[id];
+            reject({
+              err: 'timeout'
+            })
+          }
+        }, 300)
+      }
+    })
+  }
+
 
   // 衍生工作进程
   pluginDir.forEach((name) => {
-    cluster.fork({
+    const worker = cluster.fork({
       name,
     });
+    // pid 和 plugin name 对应关系
+    keyPid[name] = worker;
   })
 
   cluster.on('exit', (worker, code, signal) => {
@@ -22,34 +71,17 @@ if (cluster.isMaster) {
 
   for (const id in cluster.workers) {
     cluster.workers[id].on('message', async (result) => {
-      // pid 和 plugin name 对应关系
       const {
-        name,
-        pid
+        id,
+        data,
+        err
       } = result || {};
-      if (name && pid) {
-        keyPid[pid] = name
+      if (globalData[id] !== undefined) {
+        globalData[id] = data
       }
       console.log(result, 'client-result');
     });
   }
-
-
-
-  const {
-    app,
-    BrowserWindow,
-    Menu,
-    Notification,
-    webContents,
-    Tray,
-    ipcMain,
-  } = require('electron');
-
-  const path = require('path');
-  const url = require('url');
-  const ref = require('ref-napi');
-  const ffi = require('ffi-napi');
 
   var child_process = require('child_process');
   // const http = require('http');
@@ -107,12 +139,6 @@ if (cluster.isMaster) {
           param.data = {
             err: '请不要重复初始化'
           }
-          // sendMessage({
-          //   ...param,
-          //   data: {
-          //     err: '请不要重复初始化'
-          //   }
-          // });
           return param;
         }
         var sqlite3 = 'void' // `sqlite3` is an "opaque" pluginName, so we don't know its layout
@@ -174,7 +200,7 @@ if (cluster.isMaster) {
             return 0
           }
           SQLite3.sqlite3_exec.async(db, 'SELECT * FROM foo;', callback, b, null, function (err, ret) {
-            console.log(err, ret, 'err, ret');
+            // console.log(err, ret, 'err, ret');
             let param = {
               ...arg,
               data: args
@@ -226,7 +252,6 @@ if (cluster.isMaster) {
           } = arg || {};
           if (fn) {
             PluginFn[pluginName][fn](arg);
-            // eval(`${fn}(${JSON.stringify(arg)})`);
           } else {
             io.emit('CSMessage', {
               pluginName: null,
@@ -242,29 +267,15 @@ if (cluster.isMaster) {
       })
 
 
-      function fnhandle(arg) {
+      app.post('/CSMessage', async (req, res) => {
+        const params = req.body;
         const {
           pluginName,
           fn
-        } = arg || {};
-        if (fn) {
-          return PluginFn[pluginName][fn](arg);
-        }
-      }
-
-      app.post('/CSMessage', async (req, res) => {
-        const params = req.body;
-        // const result = await fnhandle(params);
-        const result = {};
-        const workers = Object.values(cluster.workers);
-        workers.forEach(worker => {
-          if (keyPid[worker.pid]) {
-            worker.send(params)
-          }
-        });
-
+        } = params || {};
+        const data = await pluginCall(pluginName, fn, {});
         res.send({
-          ...result
+          data
         })
       })
 
@@ -277,13 +288,9 @@ if (cluster.isMaster) {
           fn
         } = arg || {};
         if (fn) {
-          const workers = Object.values(cluster.workers);
-          workers.forEach(worker => {
-            worker.send(arg)
-          });
-          event.returnValue = {};
-          // let res = await PluginFn[pluginName][fn](arg);
-          // event.returnValue = res;
+          const data = await pluginCall(pluginName, fn, {});
+          console.log(data, 'data-----');
+          event.returnValue = data;
         }
       })
 
@@ -291,18 +298,6 @@ if (cluster.isMaster) {
         console.log('服务器已经运行，请打开浏览器，输入：http://127.0.0.1:8080/来访问')
       })
     })()
-  }
-
-
-  // SQLite3 init
-  function sendMessage(param) {
-    // IPCEvent.forEach((ipc) => {
-    //   ipc.sender.send('CSMessage', param)
-    // })
-    IPCEvent.sender.send('CSMessage', param)
-    SOCKETEvent.forEach((s) => {
-      s.emit('CSMessage', param)
-    })
   }
 
   function createWindow() {
