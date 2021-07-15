@@ -13,6 +13,22 @@
   <div>
     <div id="status">测试</div>
     <div id="events"></div>
+    <webview id="foo" src="http://his-dev.healthdt.cn/?redirect=%2Fportal%3Fversion%3D0.1.0"
+      style="display:inline-flex; width:640px; height:480px">
+    </webview>
+    <webview id="foo" src="http://his-dev.healthdt.cn/?redirect=%2Fportal%3Fversion%3D0.1.0"
+      style="display:inline-flex; width:640px; height:480px">
+    </webview>
+    <webview id="foo" src="http://his-dev.healthdt.cn/?redirect=%2Fportal%3Fversion%3D0.1.0"
+      style="display:inline-flex; width:640px; height:480px">
+    </webview>
+    <webview id="foo" src="http://his-dev.healthdt.cn/?redirect=%2Fportal%3Fversion%3D0.1.0"
+      style="display:inline-flex; width:640px; height:480px">
+    </webview>
+    <webview id="foo" src="http://his-dev.healthdt.cn/?redirect=%2Fportal%3Fversion%3D0.1.0"
+      style="display:inline-flex; width:640px; height:480px">
+    </webview>
+    <div class="indicator"></div>
   </div>
 </body>
 
@@ -60,13 +76,13 @@
       //   socket.emit('CSMessage', params);
       //   // 报错处理
       // } else {
-        return fetch('/CSMessage', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(params)
-        }).then(response => response.json())
+      return fetch('/CSMessage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+      }).then(response => response.json())
       // }
     }
   }
@@ -100,20 +116,34 @@
   }
 
   window.onload = () => {
-    const eventDom = document.getElementById('events');
-    let html = ''
-    for (let i = 0; i < 5; i++) {
-      html += `<div>
-      idCard${i}
-      <button onclick="handlePlugin('idCard${i}','init')">init</button>
-      <button onclick="handlePlugin('idCard${i}','getVersion')">getVersion</button>
-      <button onclick="handlePlugin('idCard${i}','execSync')">execSync</button>
-      <button onclick="asyncFn('idCard${i}')">asyncFn</button>
-    </div>
-    <br/>
-    `
+    // const eventDom = document.getElementById('events');
+    // let html = ''
+    // for (let i = 0; i < 5; i++) {
+    //   html += `<div>
+    //   idCard${i}
+    //   <button onclick="handlePlugin('idCard${i}','init')">init</button>
+    //   <button onclick="handlePlugin('idCard${i}','getVersion')">getVersion</button>
+    //   <button onclick="handlePlugin('idCard${i}','execSync')">execSync</button>
+    //   <button onclick="asyncFn('idCard${i}')">asyncFn</button>
+    // </div>
+    // <br/>
+    // `
+    // }
+    // eventDom.innerHTML = html;
+
+    const webview = document.querySelector('webview')
+    const indicator = document.querySelector('.indicator')
+
+    const loadstart = () => {
+      indicator.innerText = 'loading...'
     }
-    eventDom.innerHTML = html;
+
+    const loadstop = () => {
+      indicator.innerText = ''
+    }
+
+    webview.addEventListener('did-start-loading', loadstart)
+    webview.addEventListener('did-stop-loading', loadstop)
   }
 </script>
 
