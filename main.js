@@ -59,12 +59,12 @@ function deskInit() {
 
   if (process.argv.indexOf("--openAsHidden") < 0) {
     //然后加载应用的 index.html。
-    // win.loadURL(url.format({
-    //   pathname: path.join(__dirname, 'index.html'),
-    //   protocol: 'file:',
-    //   slashes: true
-    // }))
-    win.loadURL('http://his-dev.healthdt.cn/?redirect=%2Fportal%3Fversion%3D0.1.0')
+    win.loadURL(url.format({
+      pathname: path.join(__dirname, 'index.html'),
+      protocol: 'file:',
+      slashes: true
+    }))
+    // win.loadURL('http://his-dev.healthdt.cn/?redirect=%2Fportal%3Fversion%3D0.1.0')
   } else {
     win.hide();
     win.setSkipTaskbar(true);
@@ -83,7 +83,6 @@ function deskInit() {
   win.on('hide', () => {
     tray.setHighlightMode('never')
   })
-
 
   //创建系统通知区菜单
   let iconPath = ''
@@ -136,9 +135,25 @@ function deskInit() {
     }
   })
 
+  // before the app is terminated, clear both timers
+  app.on('before-quit', () => {
+    console.log('--------------------before-quit');
+    // clearInterval(progressInterval)
+  })
+
+  app.on('did-groupe-active', () => {
+    console.log('--------------------did-groupe-active');
+  })
+
+  // 在 browserWindow 获得焦点时发出。
+  app.on('browser-window-created', () => {
+    console.log('browser-window-created');
+  })
+
   app.on('activate', () => {
     // 在macOS上，当单击dock图标并且没有其他窗口打开时，
     // 通常在应用程序中重新创建一个窗口。
+    console.log('----------------------------activate');
     if (win === null) {
       createWindow()
     }

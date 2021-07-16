@@ -13,6 +13,7 @@ function errTip(plugin, param) {
 const PluginFn = {
     status: false,
     getVersion: (arg) => {
+        throw Error('error')
         let param = {
             ...arg,
         }
@@ -40,12 +41,6 @@ const PluginFn = {
             param.data = {
                 err: '请不要重复初始化'
             }
-            // sendMessage({
-            //   ...param,
-            //   data: {
-            //     err: '请不要重复初始化'
-            //   }
-            // });
             return param;
         }
         var sqlite3 = 'void' // `sqlite3` is an "opaque" pluginName, so we don't know its layout

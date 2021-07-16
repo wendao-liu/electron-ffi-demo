@@ -3,7 +3,6 @@ const {
 } = require('path')
 const PluginFn = require(join(__dirname, 'plugins', process.env.name));
 
-
 function fnhandle(arg) {
     const {
         fn

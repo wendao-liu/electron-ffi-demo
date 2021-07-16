@@ -13,6 +13,13 @@
   <div>
     <div id="status">测试</div>
     <div id="events"></div>
+    <div>报错</div>
+    <br />
+    <div>
+      <button onclick="handlePlugin('demo','init')">init</button>
+      <button onclick="handlePlugin('demo','error')">error</button>
+      <button onclick="handlePlugin('demo','getValue')">getValue</button>
+    </div>
   </div>
 </body>
 
@@ -48,7 +55,7 @@
     let params = {
       pluginName,
       fn,
-      param
+      param,
     }
     const {
       type
@@ -60,13 +67,13 @@
       //   socket.emit('CSMessage', params);
       //   // 报错处理
       // } else {
-        return fetch('/CSMessage', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(params)
-        }).then(response => response.json())
+      return fetch('/CSMessage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+      }).then(response => response.json())
       // }
     }
   }

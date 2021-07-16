@@ -11,6 +11,7 @@ if (cluster.isMaster) {
     let keyPid = {};
     let globalid = 0;
     let globalData = {};
+
     const SOCKETEvent = [];
     let IPCEvent = null;
 
@@ -32,7 +33,7 @@ if (cluster.isMaster) {
                 });
 
                 if (type) {
-                    reslove({});
+                    return reslove({});
                 }
 
                 let timer = setInterval(() => {
@@ -46,7 +47,8 @@ if (cluster.isMaster) {
                     if (count >= 20) {
                         clearInterval(timer);
                         delete globalData[id];
-                        reject({
+                        worker.kill();
+                        reslove({
                             err: 'timeout'
                         })
                     }
@@ -64,18 +66,31 @@ if (cluster.isMaster) {
         keyPid[name] = worker;
     })
 
+    // 监听进程崩溃 然后重启一个新的进程
     cluster.on('exit', (worker, code, signal) => {
-        // console.log(`worker ${worker.process.pid} died`);
+        console.log(`worker ${worker.process.pid} died`);
+        Object.keys(keyPid).forEach((name) => {
+            if (keyPid[name].process.pid === worker.process.pid) {
+                const worker = cluster.fork({
+                    name,
+                });
+                keyPid[name] = worker;
+                console.log(keyPid[name].process.pid, '------newPid');
+                clusterOnMessage(keyPid[name]);
+            }
+        })
     });
 
-    for (const id in cluster.workers) {
-        cluster.workers[id].on('message', async (result) => {
+
+    function clusterOnMessage(worker) {
+        worker.on('message', async (result) => {
             const {
                 id,
                 data,
                 err,
                 type
             } = result || {};
+            console.log(result, '---------result');
             if (type === 'async') {
                 asyncCallback(result);
             } else if (type === 'sync') {
@@ -84,6 +99,10 @@ if (cluster.isMaster) {
                 }
             }
         });
+
+    }
+    for (const name in keyPid) {
+        clusterOnMessage(keyPid[name]);
     }
 
     function asyncCallback(result) {
