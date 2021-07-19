@@ -12,11 +12,12 @@ function fnhandle(arg) {
     }
 }
 
-process.on('message', async (qeury) => {
+process.on('message', async (query) => {
     const {
         id,
-    } = qeury || {};
-    const result = await fnhandle(qeury);
+    } = query || {};
+    console.log(query,'-----query');
+    const result = await fnhandle(query);
     process.send({
         type: 'sync',
         id,

@@ -8,6 +8,7 @@
   <title>Document</title>
 </head>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js" referrerpolicy="no-referrer"></script>
 
 <body>
   <div>
@@ -26,6 +27,8 @@
 <script>
   let ipcRendererT = null;
   let socket = null;
+  let v4uuid = uuid.v4();
+
   try {
     const {
       ipcRenderer
@@ -33,17 +36,22 @@
     ipcRendererT = ipcRenderer;
     ipcRendererT.on('CSMessage', (event, res) => {
       const {
-        data,
-        fn,
-        pluginName
-      } = res || {}
-      console.log(res, 'from-ipc');
+        v4uuid: uid,
+      } = res.data.data.param || {};
+      if (uid === v4uuid) {
+        console.log(res, 'from-ipc');
+      }
     });
   } catch (error) {
     // SOCKET 
     socket = io('ws://localhost:8080');
     socket.on('CSMessage', function (res) {
-      console.log(res, 'from-websocket');
+      const {
+        v4uuid: uid,
+      } = res.data.data.param || {};
+      if (uid === v4uuid) {
+        console.log(res, 'from-websocket');
+      }
     });
   }
 
@@ -55,11 +63,12 @@
     let params = {
       pluginName,
       fn,
-      param,
+      param: {
+        ...param,
+        v4uuid,
+      },
     }
-    const {
-      type
-    } = param || {};
+
     if (ipcRendererT) {
       return Promise.resolve(ipcRendererT.sendSync('CSMessage', params))
     } else {
@@ -109,7 +118,7 @@
   window.onload = () => {
     const eventDom = document.getElementById('events');
     let html = ''
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
       html += `<div>
       idCard${i}
       <button onclick="handlePlugin('idCard${i}','init')">init</button>

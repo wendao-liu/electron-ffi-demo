@@ -4,14 +4,7 @@ let Demo = null;
 let random = Math.random();
 
 const PluginFn = {
-    init: ({
-        pluginName,
-        fn
-    }) => {
-        let param = {
-            pluginName,
-            fn
-        }
+    init: (param) => {
         console.log('Platform: ', process.platform);
         console.log('Node version: ', process.version);
         console.log('Node dependencies: ', process.versions);
@@ -27,11 +20,9 @@ const PluginFn = {
     error: () => {
         Demo.error(123);
     },
-    getValue: (arg) => {
-        return {
-            ...arg,
-            data: '获得值' + random,
-        }
+    getValue: (param) => {
+        param.data = '获得值' + random;
+        return param;
     }
 }
 

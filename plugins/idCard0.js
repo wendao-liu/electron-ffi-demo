@@ -10,13 +10,13 @@ function errTip(plugin, param) {
     }
     return true;
 }
+
+
+
 const PluginFn = {
     status: false,
-    getVersion: (arg) => {
-        throw Error('error')
-        let param = {
-            ...arg,
-        }
+    getVersion: (param) => {
+        // throw Error('error')
         if (!errTip(SQLite3, param)) {
             param.data = {
                 err: '请先初始化'
@@ -24,17 +24,9 @@ const PluginFn = {
             return param;
         }
         param.data = SQLite3.sqlite3_libversion ? SQLite3.sqlite3_libversion() : '0.0.0';
-        // sendMessage(param);
         return param;
     },
-    init: ({
-        pluginName,
-        fn
-    }) => {
-        let param = {
-            pluginName,
-            fn
-        }
+    init: (param) => {
         if (!PluginFn.status) {
             PluginFn.status = true
         } else {
@@ -65,10 +57,7 @@ const PluginFn = {
         // sendMessage(param);
         return param;
     },
-    execSync: (arg) => {
-        let param = {
-            ...arg,
-        }
+    execSync: (param) => {
         if (!errTip(SQLite3, param)) {
             param.data = {
                 err: '请先初始化'
@@ -112,19 +101,13 @@ const PluginFn = {
             })
         })
     },
-    eventIpc: (arg) => {
-        const param = {
-            type: 'ipc'
-        }
+    eventIpc: (param) => {
         process.send({
             type: 'async',
             data: param,
         });
     },
-    eventSocket: (type) => {
-        const param = {
-            type: 'socket'
-        }
+    eventSocket: (param) => {
         process.send({
             type: 'async',
             data: param,

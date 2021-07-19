@@ -38,12 +38,16 @@ if (cluster.isMaster) {
     const SOCKETEvent = [];
     let IPCEvent = null;
 
-    function pluginCall(pluginName, fn, param) {
+
+    function pluginCall(pluginName, fn, {
+        param = {},
+    }) {
         return new Promise((reslove, reject) => {
             let worker = keyPid[pluginName];
             const {
-                type
-            } = param || {};
+                type,
+            } = param;
+
             if (worker) {
                 let count = 0;
 
@@ -120,12 +124,11 @@ if (cluster.isMaster) {
                 err,
                 type
             } = result || {};
-            console.log(result, '---------result');
             if (type === 'async') {
                 asyncCallback(result);
             } else if (type === 'sync') {
                 if (globalData[id] !== undefined) {
-                    globalData[id] = data
+                    globalData[id] = result
                 }
             }
         });
@@ -139,9 +142,13 @@ if (cluster.isMaster) {
         const {
             data
         } = result || {};
+        console.log(result, '-----result');
+        const {
+            param,
+        } = data || {};
         const {
             type
-        } = data || {};
+        } = param || {};
         if (type === 'ipc') {
             IPCEvent.reply('CSMessage', {
                 data: result,
@@ -161,6 +168,9 @@ if (cluster.isMaster) {
         var http = require('http').Server(app);
         var io = require('socket.io')(http)
         var bodyParser = require('body-parser');
+        const {
+            exec
+        } = require('child_process');
 
         io.on('connection', socket => {
             console.log('链接成功');
@@ -178,33 +188,35 @@ if (cluster.isMaster) {
             const {
                 pluginName,
                 fn,
-                param = {}
             } = params || {};
-            const data = await pluginCall(pluginName, fn, params.param);
+            const data = await pluginCall(pluginName, fn, params);
             res.send({
                 data
             })
         })
 
-        http.listen(8080, 'localhost', () => {
-            console.log('服务器已经运行，请打开浏览器，输入：http://127.0.0.1:8080/来访问')
-        })
+        exec('netstat  -aon|findstr  "8080"', (error, stdout, stderr) => {
+            console.log(!stdout, '------stdout');
+            if (!stdout) {
+                http.listen(8080, 'localhost', () => {
+                    console.log('服务器已经运行，请打开浏览器，输入：http://127.0.0.1:8080/来访问')
+                })
+            } else {
+                console.log('服务器已经存在！');
+            }
+        });
     }
 
     function ipcServer() {
         // 建立通信
-        ipcMain.on('CSMessage', async (event, arg) => {
+        ipcMain.on('CSMessage', async (event, params) => {
             IPCEvent = event;
             const {
                 pluginName,
                 fn,
-                param = {}
-            } = arg || {};
-            const {
-                type
-            } = param;
+            } = params || {};
             if (fn) {
-                const data = await pluginCall(pluginName, fn, param);
+                const data = await pluginCall(pluginName, fn, params);
                 event.returnValue = data;
             }
         })
