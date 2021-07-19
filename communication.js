@@ -196,7 +196,7 @@ if (cluster.isMaster) {
         })
 
         exec('netstat  -aon|findstr  "8080"', (error, stdout, stderr) => {
-            console.log(!stdout, '------stdout');
+            console.log(stdout, '------stdout');
             if (!stdout) {
                 http.listen(8080, 'localhost', () => {
                     console.log('服务器已经运行，请打开浏览器，输入：http://127.0.0.1:8080/来访问')
@@ -232,9 +232,11 @@ if (cluster.isMaster) {
     function dllCrash() {
         let Demo = ffi.Library('dll/libtest.dll', {
             'init': ['int', ['int']],
-            'error': ['int', ['int']],
+            'crash': ['int', ['int']],
+            'exit': ['int', ['int']],
         })
-        Demo.error(123);
+        Demo.crash(123);
+        Demo.exit(123);
     }
 
     // electron 进程会直接挂掉

@@ -11,14 +11,18 @@ const PluginFn = {
         console.log('Server version: ', process.version);
         Demo = ffi.Library('dll/libtest.dll', {
             'init': ['int', ['int']],
-            'error': ['int', ['int']],
+            'crash': ['int', ['int']],
+            'exit': ['int', ['int']],
         })
         let result = Demo.init(10)
         param.data = "初始化成功！" + result;
         return param;
     },
-    error: () => {
-        Demo.error(123);
+    crash: () => {
+        Demo.crash(123);
+    },
+    exit: () => {
+        Demo.exit(123);
     },
     getValue: (param) => {
         param.data = '获得值' + random;

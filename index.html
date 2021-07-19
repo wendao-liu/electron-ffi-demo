@@ -9,8 +9,14 @@
 </head>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js" referrerpolicy="no-referrer"></script>
+<style>
+  .box {
+    position: relative;
+    overflow: hidden;
+  }
+</style>
 
-<body>
+<body style="overflow: hidden;">
   <div>
     <div id="status">测试</div>
     <div id="events"></div>
@@ -18,8 +24,13 @@
     <br />
     <div>
       <button onclick="handlePlugin('demo','init')">init</button>
-      <button onclick="handlePlugin('demo','error')">error</button>
+      <button onclick="handlePlugin('demo','exit')">exit</button>
+      <button onclick="handlePlugin('demo','crash')">crash</button>
       <button onclick="handlePlugin('demo','getValue')">getValue</button>
+    </div>
+    <div class="box">
+      <iframe frameBorder=0 scrolling="auto" src="http://his-dev.healthdt.cn/?redirect=%2Fportal%3Fversion%3D0.1.0"
+        style="display:inline-flex; width:100%; height:80vh;"></iframe>
     </div>
   </div>
 </body>
@@ -72,10 +83,6 @@
     if (ipcRendererT) {
       return Promise.resolve(ipcRendererT.sendSync('CSMessage', params))
     } else {
-      // if (type) {
-      //   socket.emit('CSMessage', params);
-      //   // 报错处理
-      // } else {
       return fetch('/CSMessage', {
         method: 'POST',
         headers: {
@@ -83,7 +90,6 @@
         },
         body: JSON.stringify(params)
       }).then(response => response.json())
-      // }
     }
   }
 

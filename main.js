@@ -6,9 +6,15 @@ const {
   BrowserWindow,
   Menu,
   Tray,
+  ipcMain,
+  nativeImage,
 } = require('electron');
 const path = require('path');
+const {
+  clearInterval
+} = require('timers');
 const url = require('url');
+let tray;
 
 function createWindow() {
   deskInit();
@@ -20,9 +26,15 @@ function deskInit() {
     width: 800,
     height: 600,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      webviewTag: true,
     }
   })
+
+  setInterval(() => {
+    // 图标闪烁
+    win.flashFrame(true)
+  }, 3000)
 
   const template = [{
       role: 'window',
@@ -95,22 +107,7 @@ function deskInit() {
     iconPath = path.join('./extraResources/icon.ico');
   }
 
-  tray = new Tray(iconPath);
-  const contextMenu = Menu.buildFromTemplate([{
-      label: '退出',
-      click: () => {
-        win.destroy()
-      }
-    }, //我们需要在这里有一个真正的退出（这里直接强制退出）
-  ])
-  tray.setToolTip('My托盘测试')
-  tray.setContextMenu(contextMenu)
-  tray.on('click', () => { //我们这里模拟桌面程序点击通知区图标实现打开关闭应用的功能
-    win.isVisible() ? win.hide() : win.show()
-    win.isVisible() ? win.setSkipTaskbar(false) : win.setSkipTaskbar(true);
-  })
-
-
+  trayfn();
   // 当 window 被关闭，这个事件会被触发。
   win.on('closed', () => {
     // 取消引用 window 对象，如果你的应用支持多窗口的话，
@@ -118,6 +115,47 @@ function deskInit() {
     // 与此同时，你应该删除相应的元素。
     win = null
   })
+
+  function trayfn() {
+    let timer;
+    tray = new Tray(iconPath);
+
+    // 获取信息触发
+    let count = 0;
+    ipcMain.on('CSMessage', (event, arg) => {
+      if (timer) {
+        clearInterval(timer);
+      }
+      timer = setInterval(() => {
+        count += 1
+        if (count % 2 === 0) {
+          tray.setImage(iconPath)
+        } else {
+          tray.setImage(nativeImage.createEmpty()) // 创建一个空的nativeImage实例
+        }
+        tray.setToolTip('您有一条新消息')
+        if (count > 5) {
+          tray.setToolTip('暂无消息');
+          count = 0;
+          clearInterval(timer);
+        }
+      }, 500)
+    })
+
+    const contextMenu = Menu.buildFromTemplate([{
+        label: '退出',
+        click: () => {
+          win.destroy()
+        }
+      }, //我们需要在这里有一个真正的退出（这里直接强制退出）
+    ])
+    tray.setToolTip('暂无消息')
+    tray.setContextMenu(contextMenu)
+    tray.on('click', () => { //我们这里模拟桌面程序点击通知区图标实现打开关闭应用的功能
+      win.isVisible() ? win.hide() : win.show()
+      win.isVisible() ? win.setSkipTaskbar(false) : win.setSkipTaskbar(true);
+    })
+  }
 }
 
 (function deskSet() {
