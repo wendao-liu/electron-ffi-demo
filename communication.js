@@ -1,9 +1,32 @@
 const cluster = require('cluster');
+const {
+    clear,
+    time
+} = require('console');
+
 if (cluster.isMaster) {
     const fs = require('fs');
+    const ffi = require('ffi-napi');
     const {
         ipcMain,
     } = require('electron');
+
+    function loggerFn(address) {
+        let options = {
+            flags: 'w', // 
+            encoding: 'utf8', // utf8编码
+        }
+        let stderr = fs.createWriteStream(address, options);
+        // 创建logger
+        let logger = new console.Console(stderr);
+        let count = 0;
+        return (message) => {
+            count++;
+            logger.log(`${count}.${JSON.stringify(message)}`)
+        }
+    }
+    const logger = loggerFn('./log/index.log')
+
     const path = require('path');
     // 文件夹下文件名称
     var pluginDir = fs.readdirSync("./plugins").map(p => (p.split('.')[0]));
@@ -68,14 +91,21 @@ if (cluster.isMaster) {
 
     // 监听进程崩溃 然后重启一个新的进程
     cluster.on('exit', (worker, code, signal) => {
-        console.log(`worker ${worker.process.pid} died`);
+        const diedPid = worker.process.pid;
+        console.log(`worker ${diedPid} died`);
         Object.keys(keyPid).forEach((name) => {
-            if (keyPid[name].process.pid === worker.process.pid) {
+            if (keyPid[name].process.pid === diedPid) {
                 const worker = cluster.fork({
                     name,
                 });
                 keyPid[name] = worker;
-                console.log(keyPid[name].process.pid, '------newPid');
+                const newPid = keyPid[name].process.pid
+                console.log(newPid, '------newPid');
+                logger({
+                    diedName: name,
+                    diedPid,
+                    newPid,
+                })
                 clusterOnMessage(keyPid[name]);
             }
         })
@@ -186,6 +216,20 @@ if (cluster.isMaster) {
     }
     startMessage()
 
+    // dll 崩溃函数
+    function dllCrash() {
+        let Demo = ffi.Library('dll/libtest.dll', {
+            'init': ['int', ['int']],
+            'error': ['int', ['int']],
+        })
+        Demo.error(123);
+    }
+
+    // electron 进程会直接挂掉
+    // let timer = setTimeout(() => {
+    //     clearTimeout(timer);
+    //     dllCrash();
+    // }, 3000)
 } else {
     // 工作进程可以共享任何 TCP 连接
     // 在本示例中，其是 HTTP 服务器

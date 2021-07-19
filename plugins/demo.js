@@ -16,7 +16,7 @@ const PluginFn = {
         console.log('Node version: ', process.version);
         console.log('Node dependencies: ', process.versions);
         console.log('Server version: ', process.version);
-        Demo = ffi.Library('dll/libtest32bit.dll', {
+        Demo = ffi.Library('dll/libtest.dll', {
             'init': ['int', ['int']],
             'error': ['int', ['int']],
         })

@@ -19,5 +19,7 @@ var instance = ffi.Library(lib, {
     'init': ['int', ['int']],
     'error': ['int', ['int']],
 });
-console.log(instance.init(123));
+setTimeout(() => {
+    instance.error(123)
+}, 2000)
 console.log(777777777);
