@@ -16,7 +16,6 @@ process.on('message', async (query) => {
     const {
         id,
     } = query || {};
-    console.log(query,'-----query');
     const result = await fnhandle(query);
     process.send({
         type: 'sync',

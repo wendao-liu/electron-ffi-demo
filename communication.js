@@ -71,10 +71,9 @@ if (cluster.isMaster) {
                         clearInterval(timer);
                         reslove(d)
                     }
-                    if (count >= 20) {
+                    if (count >= 6) {
                         clearInterval(timer);
                         delete globalData[id];
-                        worker.kill();
                         reslove({
                             err: 'timeout'
                         })
@@ -230,13 +229,13 @@ if (cluster.isMaster) {
 
     // dll 崩溃函数
     function dllCrash() {
-        let Demo = ffi.Library('dll/libtest.dll', {
+        let Demo = ffi.Library('dll/libCbuild2Demo.dll', {
             'init': ['int', ['int']],
-            'crash': ['int', ['int']],
-            'exit': ['int', ['int']],
+            'crash1': ['int', ['int']],
+            'exit1': ['int', ['int']],
         })
-        Demo.crash(123);
-        Demo.exit(123);
+        Demo.crash1(123);
+        // Demo.exit1(123);
     }
 
     // electron 进程会直接挂掉

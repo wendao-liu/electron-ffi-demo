@@ -10,32 +10,76 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js" referrerpolicy="no-referrer"></script>
 <style>
+  ::-webkit-scrollbar {
+    width: 0px;
+    height: 4px
+  }
+
+  ::-webkit-scrollbar-button {
+    width: 8px;
+    height: 0
+  }
+
+  ::-webkit-scrollbar-track {
+    background: 0 0
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #61a8df;
+    -webkit-transition: .3s;
+    transition: .3s
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #37dace
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: #17bbaf
+  }
+
+
+  body,
+  html,
+  .root {
+    height: 100%;
+  }
+
+  .plugin {
+    height: 40%;
+    overflow: auto;
+  }
+
   .box {
     position: relative;
     overflow: hidden;
+    height: 60%;
   }
 </style>
 
-<body style="overflow: hidden;">
-  <div>
-    <div id="status">测试</div>
-    <div id="events"></div>
-    <div>报错</div>
-    <br />
-    <div>
-      <button onclick="handlePlugin('demo','init')">init</button>
-      <button onclick="handlePlugin('demo','exit')">exit</button>
-      <button onclick="handlePlugin('demo','crash')">crash</button>
-      <button onclick="handlePlugin('demo','getValue')">getValue</button>
+<body>
+  <div class="root">
+    <div class="plugin">
+      <div id="status">测试</div>
+      <div id="events"></div>
+      <div>报错</div>
+      <br />
+      <div>
+        <button onclick="handlePlugin('demo','init')">init</button>
+        <button onclick="handlePlugin('demo','exit')">exit</button>
+        <button onclick="handlePlugin('demo','crash')">crash</button>
+        <button onclick="handlePlugin('demo','getValue')">getValue</button>
+      </div>
     </div>
-    <div class="box">
-      <iframe frameBorder=0 scrolling="auto" src="http://his-dev.healthdt.cn/?redirect=%2Fportal%3Fversion%3D0.1.0"
-        style="display:inline-flex; width:100%; height:80vh;"></iframe>
-    </div>
+    <!-- <div class="box">
+      <iframe frameBorder=0 scrolling="auto" src="http://localhost:8080"
+        style="display:inline-flex; width:100%; height:100%;"></iframe>
+    </div> -->
   </div>
 </body>
 
 <script>
+  // http://his-dev.healthdt.cn/?redirect=%2Fportal%3Fversion%3D0.1.0
   let ipcRendererT = null;
   let socket = null;
   let v4uuid = uuid.v4();
@@ -49,9 +93,9 @@
       const {
         v4uuid: uid,
       } = res.data.data.param || {};
-      if (uid === v4uuid) {
+      // if (uid === v4uuid) {
         console.log(res, 'from-ipc');
-      }
+      // }
     });
   } catch (error) {
     // SOCKET 
@@ -60,9 +104,9 @@
       const {
         v4uuid: uid,
       } = res.data.data.param || {};
-      if (uid === v4uuid) {
+      // if (uid === v4uuid) {
         console.log(res, 'from-websocket');
-      }
+      // }
     });
   }
 
