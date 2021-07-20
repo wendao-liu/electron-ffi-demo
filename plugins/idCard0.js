@@ -101,18 +101,12 @@ const PluginFn = {
             })
         })
     },
-    eventIpc: (param) => {
+    async: (param) => {
         process.send({
             type: 'async',
             data: param,
         });
     },
-    eventSocket: (param) => {
-        process.send({
-            type: 'async',
-            data: param,
-        });
-    }
 }
 
 module.exports = {

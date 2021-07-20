@@ -9,6 +9,7 @@
 </head>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js" referrerpolicy="no-referrer"></script>
+<script src="http://localhost:8080/pluginon.js"></script>
 <style>
   ::-webkit-scrollbar {
     width: 0px;
@@ -79,91 +80,26 @@
 </body>
 
 <script>
-  // http://his-dev.healthdt.cn/?redirect=%2Fportal%3Fversion%3D0.1.0
-  let ipcRendererT = null;
-  let socket = null;
-  let v4uuid = uuid.v4();
-
-  try {
-    const {
-      ipcRenderer
-    } = require('electron');
-    ipcRendererT = ipcRenderer;
-    ipcRendererT.on('CSMessage', (event, res) => {
-      const {
-        v4uuid: uid,
-      } = res.data.data.param || {};
-      // if (uid === v4uuid) {
-        console.log(res, 'from-ipc');
-      // }
-    });
-  } catch (error) {
-    // SOCKET 
-    socket = io('ws://localhost:8080');
-    socket.on('CSMessage', function (res) {
-      const {
-        v4uuid: uid,
-      } = res.data.data.param || {};
-      // if (uid === v4uuid) {
-        console.log(res, 'from-websocket');
-      // }
-    });
-  }
-
-  function messageFn({
-    pluginName,
-    fn,
-    param
-  }) {
-    let params = {
-      pluginName,
-      fn,
-      param: {
-        ...param,
-        v4uuid,
-      },
-    }
-
-    if (ipcRendererT) {
-      return Promise.resolve(ipcRendererT.sendSync('CSMessage', params))
-    } else {
-      return fetch('/CSMessage', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(params)
-      }).then(response => response.json())
-    }
-  }
-
   async function handlePlugin(pluginName, fn) {
-    const res = await messageFn({
+    const res = await syncmessage({
       pluginName,
       fn
     })
     console.log(res);
   }
 
-  function asyncFn(pluginName) {
-    if (ipcRendererT) {
-      messageFn({
-        pluginName,
-        fn: 'eventIpc',
-        param: {
-          type: 'ipc'
-        }
-      });
-    } else {
-      messageFn({
-        pluginName,
-        fn: 'eventSocket',
-        param: {
-          type: 'socket'
-        }
-      });
-    }
+  let asyncmessagefn = asyncmessage((res) => {
+    console.log(res, '----res');
+  });
+
+  function asyncFn(pluginName, fn, param) {
+    asyncmessagefn({
+      pluginName,
+      fn,
+      param
+    })
   }
+
 
   window.onload = () => {
     const eventDom = document.getElementById('events');
@@ -174,7 +110,7 @@
       <button onclick="handlePlugin('idCard${i}','init')">init</button>
       <button onclick="handlePlugin('idCard${i}','getVersion')">getVersion</button>
       <button onclick="handlePlugin('idCard${i}','execSync')">execSync</button>
-      <button onclick="asyncFn('idCard${i}')">asyncFn</button>
+      <button onclick="asyncFn('idCard${i}', 'async')">asyncFn</button>
     </div>
     <br/>
     `

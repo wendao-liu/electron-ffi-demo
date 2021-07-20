@@ -1,5 +1,5 @@
 const cluster = require('cluster');
-require('./communication');
+require('./pluginCenter');
 if (!cluster.isMaster) return;
 const {
   app,
@@ -9,6 +9,7 @@ const {
   ipcMain,
   nativeImage,
 } = require('electron');
+
 const path = require('path');
 const {
   clearInterval
@@ -71,12 +72,13 @@ function deskInit() {
 
   if (process.argv.indexOf("--openAsHidden") < 0) {
     //然后加载应用的 index.html。
-    win.loadURL(url.format({
-      pathname: path.join(__dirname, 'index.html'),
-      protocol: 'file:',
-      slashes: true
-    }))
+    // win.loadURL(url.format({
+    //   pathname: path.join(__dirname, 'index.html'),
+    //   protocol: 'file:',
+    //   slashes: true
+    // }))
     // win.loadURL('http://his-dev.healthdt.cn/?redirect=%2Fportal%3Fversion%3D0.1.0')
+    win.loadURL('http://localhost:8003')
   } else {
     win.hide();
     win.setSkipTaskbar(true);
@@ -164,18 +166,8 @@ function deskInit() {
   // 部分 API 在 ready 事件触发后才能使用。
   app.on('ready', createWindow)
 
-  // 当全部窗口关闭时退出。
-  app.on('window-all-closed', () => {
-    // 在 macOS 上，除非用户用 Cmd + Q 确定地退出，
-    // 否则绝大部分应用及其菜单栏会保持激活。
-    if (process.platform !== 'darwin') {
-      app.quit();
-    }
-  })
-
   // before the app is terminated, clear both timers
   app.on('before-quit', () => {
-    console.log('--------------------before-quit');
     // clearInterval(progressInterval)
   })
 
@@ -195,6 +187,9 @@ function deskInit() {
     if (win === null) {
       createWindow()
     }
+  })
+  app.on('window-all-closed', () => {
+    tray.destroy()
   })
 
   // 注册自定义协议
