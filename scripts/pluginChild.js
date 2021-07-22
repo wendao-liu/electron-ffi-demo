@@ -1,7 +1,9 @@
 const {
     join
 } = require('path')
-const PluginFn = require(join(__dirname, 'plugins', process.env.name));
+
+let p = join(process.cwd(), 'plugins', process.env.name, 'index');
+const PluginFn = require(p);
 
 function fnhandle(arg) {
     const {
@@ -20,6 +22,6 @@ process.on('message', async (query) => {
     process.send({
         type: 'sync',
         id,
-        data: result,
+        data: result
     });
 });

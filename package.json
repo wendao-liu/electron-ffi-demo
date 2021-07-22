@@ -35,9 +35,13 @@
       ]
     },
     "extraFiles": [
-      "dll",
       "extraResources",
-      "node_modules"
+      "node_modules",
+      "util",
+      "plugins",
+      "public",
+      "log",
+      "scripts"
     ]
   },
   "devDependencies": {

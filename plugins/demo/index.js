@@ -1,11 +1,19 @@
-const ffi = require('ffi-napi');
-const path = require('path')
+const {
+    join
+} = require('path');
+const {
+    dynamicallyRequire
+} = require(join(process.cwd(), './util/index.js'));
+
+
+const ffi = dynamicallyRequire('ffi-napi');
 let Demo = null;
 let random = Math.random();
+let dllPath = join(__dirname, './libCbuild2Demo');
 
 const PluginFn = {
     init: (param) => {
-        Demo = ffi.Library('dll/libCbuild2Demo.dll', {
+        Demo = ffi.Library(dllPath, {
             'init': ['int', ['int']],
             'crash1': ['int', ['int']],
             'exit1': ['int', ['int']],

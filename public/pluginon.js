@@ -58,11 +58,15 @@ function syncmessage({
 function asyncmessage(callback) {
     if (ipcRendererT) {
         ipcRendererT.on('CSMessage', (event, res) => {
-            const {
-                v4uuid: uid,
-            } = res.data.data.param || {};
-            if (uid === v4uuid) {
+            try {
+                const {
+                    v4uuid: uid,
+                } = res.data.data.param || {};
+                // if (uid === v4uuid) {
                 // console.log(res, 'from-ipc');
+                callback(res)
+                // }
+            } catch (error) {
                 callback(res)
             }
         });
@@ -71,16 +75,16 @@ function asyncmessage(callback) {
             const {
                 v4uuid: uid,
             } = res.data.data.param || {};
-            if (uid === v4uuid) {
-                // console.log(res, 'from-websocket');
-                callback(res)
-            }
+            // if (uid === v4uuid) {
+            // console.log(res, 'from-websocket');
+            callback(res)
+            // }
         });
     }
     return ({
         pluginName,
         fn,
-        param
+        param = {}
     }) => {
         if (ipcRendererT) {
             syncmessage({

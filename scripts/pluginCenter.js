@@ -1,15 +1,20 @@
 const cluster = require('cluster');
-require('console');
-
 if (cluster.isMaster) {
+    const {
+        join
+    } = require('path');
+    const {
+        dynamicallyRequire
+    } = require(join(process.cwd(), './util/index.js'));
     const fs = require('fs');
-    const ffi = require('ffi-napi');
+    const ffi = dynamicallyRequire('ffi-napi');
     const {
         ipcMain,
         app
     } = require('electron');
 
     let gotTheLock = app.requestSingleInstanceLock();
+    console.log(gotTheLock, '-----gotTheLock');
     if (!gotTheLock) {
         let lockTimer = setInterval(() => {
             if (gotTheLock) return;
@@ -54,13 +59,14 @@ if (cluster.isMaster) {
                 logger.log(`${count}.${JSON.stringify(message)}`)
             }
         }
-        const logger = loggerFn('./log/index.log')
+        const logger = loggerFn(join(process.cwd(), './log/index.log'))
 
 
         function createCluster() {
-            var pluginDir = fs.readdirSync("./plugins").map(p => (p.split('.')[0]));
+            var pluginDir = fs.readdirSync(join(process.cwd(), "./plugins")).map(p => (p.split('.')[0]));
             // 衍生工作进程
-            pluginDir.forEach((name) => {
+            if (!process.argv[1] || true) process.argv[1] = process.cwd();
+            pluginDir.forEach((name, index) => {
                 const worker = cluster.fork({
                     name,
                 });
@@ -187,16 +193,16 @@ if (cluster.isMaster) {
 
         function httpServer() {
             // 直接走http服务
-            let express = require('express');
+            let express = dynamicallyRequire('express');
             let app = express();
-            const cors = require('cors');
+            const cors = dynamicallyRequire('cors');
             app.use(cors());
             app.use(express.static('public'));
             var http = require('http').Server(app);
-            var io = require('socket.io')(http, {
+            var io = dynamicallyRequire('socket.io')(http, {
                 cors: true
             });
-            var bodyParser = require('body-parser');
+            var bodyParser = dynamicallyRequire('body-parser');
             const {
                 exec
             } = require('child_process');
@@ -209,7 +215,7 @@ if (cluster.isMaster) {
 
             app.use(bodyParser.json())
             app.get('/', (req, res) => {
-                res.sendFile(path.join(__dirname, './index.html'))
+                res.sendFile(path.join(__dirname, '../extraResources/index.html'))
             })
 
             app.post('/CSMessage', async (req, res) => {
@@ -238,9 +244,6 @@ if (cluster.isMaster) {
             server.close(() => {
                 console.log('Closed out remaining connections');
             });
-            if (process.platform !== 'darwin') {
-                app.quit();
-            }
         })
 
         function ipcServer() {
@@ -284,5 +287,8 @@ if (cluster.isMaster) {
 } else {
     // 工作进程可以共享任何 TCP 连接
     // 在本示例中，其是 HTTP 服务器
-    require('./pluginChild.js');
+    const {
+        join
+    } = require('path')
+    require(join(process.cwd(), 'scripts', 'pluginChild.js'));
 }

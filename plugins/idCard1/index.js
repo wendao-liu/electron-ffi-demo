@@ -1,8 +1,14 @@
-const ffi = require('ffi-napi');
-const ref = require('ref-napi');
+const {
+    join
+} = require('path');
+const {
+    dynamicallyRequire
+} = require(join(process.cwd(), '/util/index.js'));
+const ffi = dynamicallyRequire('ffi-napi');
+const ref = dynamicallyRequire('ref-napi');
 let SQLite3 = null;
 let IPCEvent = [];
-
+let dllPath = join(__dirname, './sqlite3');
 
 function errTip(plugin, param) {
     if (!plugin) {
@@ -17,13 +23,14 @@ const PluginFn = {
     status: false,
     getVersion: (param) => {
         // throw Error('error')
-        if (!errTip(SQLite3, param)) {
-            param.data = {
-                err: '请先初始化'
-            }
-            return param;
-        }
-        param.data = SQLite3.sqlite3_libversion ? SQLite3.sqlite3_libversion() : '0.0.0';
+        // if (!errTip(SQLite3, param)) {
+        //     param.data = {
+        //         err: '请先初始化'
+        //     }
+        //     return param;
+        // }
+        // param.data = SQLite3.sqlite3_libversion ? SQLite3.sqlite3_libversion() : '0.0.0';
+        param.data = dllPath;
         return param;
     },
     init: (param) => {
@@ -44,7 +51,7 @@ const PluginFn = {
             stringPtr = ref.refType('string')
 
         // create FFI'd versions of the libsqlite3 function we're interested in
-        SQLite3 = ffi.Library('dll/sqlite3', {
+        SQLite3 = ffi.Library(dllPath, {
             'sqlite3_libversion': ['string', []],
             'sqlite3_open': ['int', ['string', sqlite3PtrPtr]],
             'sqlite3_close': ['int', [sqlite3Ptr]],

@@ -1,5 +1,8 @@
 const cluster = require('cluster');
-require('./pluginCenter');
+const {
+  join
+} = require('path')
+require(join(process.cwd(), 'scripts', 'pluginCenter'));
 if (!cluster.isMaster) return;
 const {
   app,
@@ -11,10 +14,6 @@ const {
 } = require('electron');
 
 const path = require('path');
-const {
-  clearInterval
-} = require('timers');
-const url = require('url');
 let tray;
 
 function createWindow() {
@@ -32,10 +31,10 @@ function deskInit() {
     }
   })
 
-  setInterval(() => {
-    // 图标闪烁
-    win.flashFrame(true)
-  }, 3000)
+  // setInterval(() => {
+  //   // 图标闪烁
+  //   win.flashFrame(true)
+  // }, 3000)
 
   const template = [{
       role: 'window',
@@ -78,7 +77,7 @@ function deskInit() {
     //   slashes: true
     // }))
     // win.loadURL('http://his-dev.healthdt.cn/?redirect=%2Fportal%3Fversion%3D0.1.0')
-    win.loadURL('http://localhost:8003')
+    win.loadURL('http://localhost:8080')
   } else {
     win.hide();
     win.setSkipTaskbar(true);
@@ -189,7 +188,10 @@ function deskInit() {
     }
   })
   app.on('window-all-closed', () => {
-    tray.destroy()
+    // tray.destroy()
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
   })
 
   // 注册自定义协议
