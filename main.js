@@ -101,11 +101,11 @@ function deskInit() {
   let iconPath = ''
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // 测试环境
-    iconPath = path.join(app.getAppPath(), './extraResources/icon.ico');
+    iconPath = path.join(app.getAppPath(), './static/icon.ico');
   } else {
     // 正式环境
-    // iconPath = path.join(process.resourcesPath, './extraResources/icon.ico');
-    iconPath = path.join('./extraResources/icon.ico');
+    // iconPath = path.join(process.resourcesPath, './static/icon.ico');
+    iconPath = path.join('./static/icon.ico');
   }
 
   trayfn();

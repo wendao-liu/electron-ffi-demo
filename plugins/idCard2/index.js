@@ -98,12 +98,8 @@ const PluginFn = {
             }
             SQLite3.sqlite3_exec.async(db, 'SELECT * FROM foo;', callback, b, null, function (err, ret) {
                 console.log(err, ret, 'err, ret');
-                let param = {
-                    ...arg,
-                    data: args
-                }
+                param.data = args;
                 reslove(param)
-                if (err) throw err
             })
         })
     },

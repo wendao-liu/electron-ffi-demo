@@ -23,14 +23,13 @@ const PluginFn = {
     status: false,
     getVersion: (param) => {
         // throw Error('error')
-        // if (!errTip(SQLite3, param)) {
-        //     param.data = {
-        //         err: '请先初始化'
-        //     }
-        //     return param;
-        // }
-        // param.data = SQLite3.sqlite3_libversion ? SQLite3.sqlite3_libversion() : '0.0.0';
-        param.data = dllPath;
+        if (!errTip(SQLite3, param)) {
+            param.data = {
+                err: '请先初始化'
+            }
+            return param;
+        }
+        param.data = SQLite3.sqlite3_libversion ? SQLite3.sqlite3_libversion() : '0.0.0';
         return param;
     },
     init: (param) => {
@@ -99,12 +98,8 @@ const PluginFn = {
             }
             SQLite3.sqlite3_exec.async(db, 'SELECT * FROM foo;', callback, b, null, function (err, ret) {
                 console.log(err, ret, 'err, ret');
-                let param = {
-                    ...arg,
-                    data: args
-                }
+                param.data = args;
                 reslove(param)
-                if (err) throw err
             })
         })
     },

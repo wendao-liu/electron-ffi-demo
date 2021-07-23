@@ -62,10 +62,10 @@ function asyncmessage(callback) {
                 const {
                     v4uuid: uid,
                 } = res.data.data.param || {};
-                // if (uid === v4uuid) {
-                // console.log(res, 'from-ipc');
-                callback(res)
-                // }
+                if (uid === v4uuid) {
+                    // console.log(res, 'from-ipc');
+                    callback(res)
+                }
             } catch (error) {
                 callback(res)
             }
@@ -75,10 +75,10 @@ function asyncmessage(callback) {
             const {
                 v4uuid: uid,
             } = res.data.data.param || {};
-            // if (uid === v4uuid) {
-            // console.log(res, 'from-websocket');
-            callback(res)
-            // }
+            if (uid === v4uuid) {
+                // console.log(res, 'from-websocket'c
+                callback(res)
+            }
         });
     }
     return ({

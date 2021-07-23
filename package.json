@@ -20,22 +20,22 @@
       "oneClick": false,
       "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "extraResources/icon.ico",
-      "uninstallerIcon": "extraResources/icon.ico",
-      "installerHeaderIcon": "extraResources/icon.ico",
+      "installerIcon": "static/icon.ico",
+      "uninstallerIcon": "static/icon.ico",
+      "installerHeaderIcon": "static/icon.ico",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "test"
     },
     "win": {
-      "icon": "extraResources/icon.ico",
+      "icon": "static/icon.ico",
       "target": [
         "nsis",
         "zip"
       ]
     },
     "extraFiles": [
-      "extraResources",
+      "static",
       "node_modules",
       "util",
       "plugins",
@@ -47,7 +47,7 @@
   "devDependencies": {
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
-    "electron": "^6.1.12",
+    "electron": "6.1.12",
     "electron-builder": "^21.2.0",
     "electron-reloader": "^1.2.1",
     "express": "^4.17.1",

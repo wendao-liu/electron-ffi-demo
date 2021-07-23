@@ -65,7 +65,10 @@ if (cluster.isMaster) {
         function createCluster() {
             var pluginDir = fs.readdirSync(join(process.cwd(), "./plugins")).map(p => (p.split('.')[0]));
             // 衍生工作进程
-            if (!process.argv[1] || true) process.argv[1] = process.cwd();
+            if (!process.argv[1]) {
+                var modulePath = join(process.cwd(), 'scripts/pluginChild.js')
+                process.argv[1] = modulePath;
+            }
             pluginDir.forEach((name, index) => {
                 const worker = cluster.fork({
                     name,
@@ -110,7 +113,7 @@ if (cluster.isMaster) {
                             clearInterval(timer);
                             reslove(d)
                         }
-                        if (count >= 6) {
+                        if (count >= 10) {
                             clearInterval(timer);
                             delete globalData[id];
                             reslove({
@@ -215,7 +218,7 @@ if (cluster.isMaster) {
 
             app.use(bodyParser.json())
             app.get('/', (req, res) => {
-                res.sendFile(path.join(__dirname, '../extraResources/index.html'))
+                res.sendFile(path.join(__dirname, '../static/index.html'))
             })
 
             app.post('/CSMessage', async (req, res) => {
