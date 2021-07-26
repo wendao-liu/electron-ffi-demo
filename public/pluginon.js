@@ -1,6 +1,7 @@
 let ipcRendererT = null;
 let socket = null;
 let v4uuid = uuid.v4();
+let asyncEventListenerStatus = false;
 try {
     createipc();
 } catch (error) {
@@ -28,7 +29,7 @@ function createSocket() {
     });
 }
 
-function syncmessage({
+function syncMessage({
     pluginName,
     fn,
     param
@@ -55,55 +56,52 @@ function syncmessage({
     }
 }
 
-function asyncmessage(callback) {
+function asyncMessage({
+    pluginName,
+    fn,
+    param = {},
+    callback
+}) {
     if (ipcRendererT) {
-        ipcRendererT.on('CSMessage', (event, res) => {
+        !asyncEventListenerStatus && ipcRendererT.on('CSMessage', (event, res) => {
             try {
                 const {
                     v4uuid: uid,
                 } = res.data.data.param || {};
-                if (uid === v4uuid) {
-                    // console.log(res, 'from-ipc');
-                    callback(res)
-                }
+                // if (uid === v4uuid) {
+                // console.log(res, 'from-ipc');
+                callback(res)
+                // }
             } catch (error) {
                 callback(res)
             }
         });
+        syncMessage({
+            pluginName,
+            fn,
+            param: {
+                type: 'ipc',
+                ...param,
+            }
+        });
     } else {
-        socket.on('CSMessage', function (res) {
+        !asyncEventListenerStatus && socket.on('CSMessage', function (res) {
             const {
                 v4uuid: uid,
             } = res.data.data.param || {};
-            if (uid === v4uuid) {
-                // console.log(res, 'from-websocket'c
-                callback(res)
+            // if (uid === v4uuid) {
+            // console.log(res, 'from-websocket'c
+            callback(res)
+            // }
+        });
+        syncMessage({
+            pluginName,
+            fn,
+            param: {
+                type: 'socket',
+                ...param,
             }
         });
     }
-    return ({
-        pluginName,
-        fn,
-        param = {}
-    }) => {
-        if (ipcRendererT) {
-            syncmessage({
-                pluginName,
-                fn,
-                param: {
-                    type: 'ipc',
-                    ...param,
-                }
-            });
-        } else {
-            syncmessage({
-                pluginName,
-                fn,
-                param: {
-                    type: 'socket',
-                    ...param,
-                }
-            });
-        }
-    }
+    asyncEventListenerStatus = true;
 }

@@ -81,22 +81,23 @@
 
 <script>
   async function handlePlugin(pluginName, fn) {
-    const res = await syncmessage({
+    const res = await syncMessage({
       pluginName,
       fn
     })
     console.log(res);
   }
 
-  let asyncmessagefn = asyncmessage((res) => {
+  const callback = (res) => {
     console.log(res, '----res');
-  });
+  };
 
   function asyncFn(pluginName, fn, param) {
-    asyncmessagefn({
+    asyncMessage({
       pluginName,
       fn,
-      param
+      param,
+      callback,
     })
   }
 

@@ -10,13 +10,28 @@ let SQLite3 = null;
 let IPCEvent = [];
 let dllPath = join(__dirname, './sqlite3');
 
-function errTip(plugin, param) {
+function errTip(plugin) {
     if (!plugin) {
         return false;
     }
     return true;
 }
 
+
+function codeData(param, data) {
+    if (data) {
+        param.data = data;
+        param.code = 2000;
+        param.message = null;
+    } else {
+        param.data = '暂无数据';
+        param.code = 2000;
+        param.message = '暂无数据';
+    }
+
+
+    return param;
+}
 
 
 const PluginFn = {
@@ -58,7 +73,7 @@ const PluginFn = {
             'sqlite3_exec': ['int', [sqlite3Ptr, 'string', sqlite3_exec_callback, 'void *', stringPtr]],
         })
 
-        param.data = '初始化成功！'
+        param = codeData(param, '初始化成功！')
 
         // sendMessage(param);
         return param;
@@ -98,12 +113,13 @@ const PluginFn = {
             }
             SQLite3.sqlite3_exec.async(db, 'SELECT * FROM foo;', callback, b, null, function (err, ret) {
                 console.log(err, ret, 'err, ret');
-                param.data = args;
+                param = codeData(param, args);
                 reslove(param)
             })
         })
     },
     async: (param) => {
+        param = codeData(param);
         process.send({
             type: 'async',
             data: param,
