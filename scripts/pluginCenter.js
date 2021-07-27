@@ -14,7 +14,8 @@ if (cluster.isMaster) {
     } = require('electron');
 
     let gotTheLock = app.requestSingleInstanceLock();
-    console.log(gotTheLock, '-----gotTheLock');
+
+
     if (!gotTheLock) {
         let lockTimer = setInterval(() => {
             if (gotTheLock) return;
@@ -40,9 +41,33 @@ if (cluster.isMaster) {
         let globalId = 0;
         let globalData = {};
         let server = {};
-
+        const pluginRequestStatistics = [];
+        const pluginRequestStatisticsMaxLength = 20;
+        const pluginDir = () => {
+            return fs.readdirSync(join(process.cwd(), "./plugins")).map(p => (p.split('.')[0]));
+        }
         const SOCKETEvent = [];
         let IPCEvent = null;
+
+
+        function pluginStatistics(requestList) {
+            if (requestList) {
+                SOCKETEvent.forEach((s) => {
+                    s.emit('pluginStatistics', {
+                        requestList,
+                    });
+                })
+                return;
+            }
+
+            // 统计插件
+            setTimeout(() => {
+                SOCKETEvent.forEach((s) => {
+                    s.emit('pluginStatistics', keyPid);
+                })
+            }, 1000)
+        }
+
 
         // 打日志
         function loggerFn(address) {
@@ -61,21 +86,47 @@ if (cluster.isMaster) {
         }
         const logger = loggerFn(join(process.cwd(), './log/index.log'))
 
+        // 插件更新
+        const updatePluginTimer = setInterval(() => {
+            let flag = false;
+            // 删除插件文件---卸载插件
+            Object.keys(keyPid).forEach((name) => {
+                if (!pluginDir().includes(name)) {
+                    flag = true;
+                    delete keyPid[name];
+                }
+            });
+            // 新增插件文件---安装插件
+            pluginDir().forEach((name) => {
+                if (keyPid[name]) return;
+
+                const worker = cluster.fork({
+                    name,
+                });
+                flag = true;
+                keyPid[name] = worker;
+            })
+            if (flag) {
+                flag = false;
+                pluginStatistics();
+            }
+        }, 2000)
 
         function createCluster() {
-            var pluginDir = fs.readdirSync(join(process.cwd(), "./plugins")).map(p => (p.split('.')[0]));
             // 衍生工作进程
             if (!process.argv[1]) {
                 var modulePath = join(process.cwd(), 'scripts/pluginChild.js')
                 process.argv[1] = modulePath;
             }
-            pluginDir.forEach((name, index) => {
+            pluginDir().forEach((name, index) => {
                 const worker = cluster.fork({
                     name,
                 });
                 // pid 和 plugin name 对应关系
                 keyPid[name] = worker;
+
             })
+            pluginStatistics();
         }
 
         // 创建集群
@@ -84,6 +135,12 @@ if (cluster.isMaster) {
         function pluginCall(pluginName, fn, {
             param = {},
         }) {
+            pluginRequestStatistics.unshift({
+                pluginName,
+                fn
+            });
+            pluginRequestStatistics.length > pluginRequestStatisticsMaxLength && (pluginRequestStatistics.length = pluginRequestStatisticsMaxLength);
+            pluginStatistics(pluginRequestStatistics);
             return new Promise((reslove, reject) => {
                 let worker = keyPid[pluginName];
                 const {
@@ -117,7 +174,8 @@ if (cluster.isMaster) {
                             clearInterval(timer);
                             delete globalData[id];
                             reslove({
-                                err: 'timeout'
+                                message: 'timeout',
+                                code: 2000
                             })
                         }
                     }, 300)
@@ -146,6 +204,7 @@ if (cluster.isMaster) {
                     clusterOnMessage(keyPid[name]);
                 }
             })
+            pluginStatistics();
         });
 
 
@@ -214,6 +273,9 @@ if (cluster.isMaster) {
                 console.log('链接成功');
                 // 响应用户发送的信息
                 SOCKETEvent.push(socket);
+                SOCKETEvent.forEach((s) => {
+                    s.emit('pluginStatistics', keyPid);
+                })
             });
 
             app.use(bodyParser.json())
@@ -247,6 +309,9 @@ if (cluster.isMaster) {
             server.close(() => {
                 console.log('Closed out remaining connections');
             });
+
+            // 清空监听插件更新的定时器
+            clearInterval(updatePluginTimer);
         })
 
         function ipcServer() {
