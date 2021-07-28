@@ -1,15 +1,11 @@
 const {
-    join
-} = require('path');
-const {
     dynamicallyRequire
-} = require(join(process.cwd(), './util/index.js'));
-
+} = require('../../util/index.js');
 
 const ffi = dynamicallyRequire('ffi-napi');
 let Demo = null;
 let random = Math.random();
-let dllPath = join(__dirname, './libCbuild2Demo');
+let dllPath = './libCbuild2Demo';
 
 const PluginFn = {
     init: (param) => {

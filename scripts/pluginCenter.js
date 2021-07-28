@@ -1,11 +1,16 @@
 const cluster = require('cluster');
+const {
+    join
+} = require('path');
+
+function getPath(p) {
+    return join(__dirname, '../', p)
+}
 if (cluster.isMaster) {
-    const {
-        join
-    } = require('path');
+
     const {
         dynamicallyRequire
-    } = require(join(process.cwd(), './util/index.js'));
+    } = require(getPath('util/index.js'));
     const fs = require('fs');
     const ffi = dynamicallyRequire('ffi-napi');
     const {
@@ -44,7 +49,7 @@ if (cluster.isMaster) {
         const pluginRequestStatistics = [];
         const pluginRequestStatisticsMaxLength = 20;
         const pluginDir = () => {
-            return fs.readdirSync(join(process.cwd(), "./plugins")).map(p => (p.split('.')[0]));
+            return fs.readdirSync(getPath("plugins")).map(p => (p.split('.')[0]));
         }
         const SOCKETEvent = [];
         let IPCEvent = null;
@@ -84,7 +89,7 @@ if (cluster.isMaster) {
                 logger.log(`${count}.${JSON.stringify(message)}`)
             }
         }
-        const logger = loggerFn(join(process.cwd(), './log/index.log'))
+        const logger = loggerFn(getPath('log/index.log'))
 
         // 插件更新
         const updatePluginTimer = setInterval(() => {
@@ -115,7 +120,8 @@ if (cluster.isMaster) {
         function createCluster() {
             // 衍生工作进程
             if (!process.argv[1]) {
-                var modulePath = join(process.cwd(), 'scripts/pluginChild.js')
+                // var modulePath = join(__dirname, './scripts/pluginChild.js')
+                var modulePath = join(process.cwd(), 'resources/scripts/pluginChild.js')
                 process.argv[1] = modulePath;
             }
             pluginDir().forEach((name, index) => {
@@ -280,7 +286,7 @@ if (cluster.isMaster) {
 
             app.use(bodyParser.json())
             app.get('/', (req, res) => {
-                res.sendFile(path.join(__dirname, '../static/index.html'))
+                res.sendFile(getPath('static/index.html'))
             })
 
             app.post('/CSMessage', async (req, res) => {
@@ -355,8 +361,6 @@ if (cluster.isMaster) {
 } else {
     // 工作进程可以共享任何 TCP 连接
     // 在本示例中，其是 HTTP 服务器
-    const {
-        join
-    } = require('path')
-    require(join(process.cwd(), 'scripts', 'pluginChild.js'));
+    require('./pluginChild.js');
+    // require(join(process.cwd(),'resources' ,'scripts', 'pluginChild.js'));
 }

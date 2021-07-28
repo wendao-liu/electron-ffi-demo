@@ -1,14 +1,11 @@
 const {
-    join
-} = require('path');
-const {
     dynamicallyRequire
-} = require(join(process.cwd(), '/util/index.js'));
+} = require('../../util/index.js');
 const ffi = dynamicallyRequire('ffi-napi');
 const ref = dynamicallyRequire('ref-napi');
 let SQLite3 = null;
 let IPCEvent = [];
-let dllPath = join(__dirname, './sqlite3');
+let dllPath = './sqlite3';
 
 function errTip(plugin, param) {
     if (!plugin) {

@@ -2,7 +2,7 @@ const {
     join
 } = require('path')
 
-let p = join(process.cwd(), 'plugins', process.env.name, 'index');
+let p = join('../', 'plugins', process.env.name, 'index');
 const PluginFn = require(p);
 
 function fnhandle(arg) {

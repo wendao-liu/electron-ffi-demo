@@ -1,8 +1,17 @@
 const cluster = require('cluster');
 const {
   join
-} = require('path')
-require(join(process.cwd(), 'scripts', 'pluginCenter'));
+} = require('path');
+
+function getPath(p) {
+  if (process.env.NODE_ENV) {
+    return p
+  } else {
+    return join(__dirname, '../', p)
+  }
+}
+require(getPath('./scripts/pluginCenter'));
+
 if (!cluster.isMaster) return;
 const {
   app,

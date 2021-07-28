@@ -7,7 +7,7 @@ function dynamicallyRequire(moduleName) {
 }
 
 function getNodeModulesPath(moduleName) {
-    return path.join(process.cwd(), './node_modules/' + moduleName);
+    return '../node_modules/' + moduleName;
 }
 
 module.exports = {
